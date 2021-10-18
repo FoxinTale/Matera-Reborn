@@ -46,16 +46,8 @@ FormList Property MaleBodyColourList Auto
 FormList Property MaleHandsColourList Auto
 FormList Property TailColourList Auto
 
-TextureSet FemaleBodyTexture
-TextureSet FemaleHandsTexture
-TextureSet MaleBodyTexture
-TextureSet MaleHandsTexture
-TextureSet TailTexture
-
-ArmorAddon MateraTorso
-ArmorAddon MateraHands
-ArmorAddon MateraFeet
-ArmorAddon MateraTail
+TextureSet[] Textures
+ArmorAddon[] BodyParts
 
 HeadPart DefaultEars
 HeadPart CurrentEars
@@ -185,11 +177,14 @@ EndEvent
 ; Variable and property initialisation functions. They pretty much do what they say.
 
 Function InitialiseValues()
-	FemaleBodyTexture = FemaleBodyColour_List.GetAt(DefaultColour) as TextureSet
-	FemaleHandsTexture = FemaleHandsColour_List.GetAt(DefaultColour) as TextureSet
-	MaleBodyTexture = MaleBodyColourList.GetAt(DefaultColour) as TextureSet
-	MaleHandsTexture = MaleHandscolourList.GetAt(DefaultColour) as TextureSet
-	TailTexture = TailColourList.GetAt(DefaultColour) as TextureSet\
+	Textures = new TextureSet[5]
+	BodyParts = new ArmorAddon[4]
+
+	Textures[0] = FemaleBodyColour_List.GetAt(DefaultColour) as TextureSet
+	Textures[1] = FemaleHandsColour_List.GetAt(DefaultColour) as TextureSet
+	Textures[2] = MaleBodyColourList.GetAt(DefaultColour) as TextureSet
+	Textures[3] = MaleHandscolourList.GetAt(DefaultColour) as TextureSet
+	Textures[4] = TailColourList.GetAt(DefaultColour) as TextureSet
 	
 	BlankEars = MiscMateraHeadPartsList.GetAt(0) as HeadPart
 	DefaultEars = MiscMateraHeadPartsList.GetAt(1) as HeadPart
@@ -209,15 +204,15 @@ EndFunction
 
 ; One of the more unusual functions I've named, but it does exactly what it says. 
 Function InitialiseBodyParts() 
-	MateraTail = MateraBody.GetNthArmorAddon(0)
-	MateraTorso = MateraBody.GetNthArmorAddon(1)
-	MateraHands = MateraBody.GetNthArmorAddon(2)
-	MateraFeet = MateraBody.GetNthArmorAddon(3)
+	BodyParts[0] = MateraBody.GetNthArmorAddon(0) ; Tail
+	BodyParts[1] = MateraBody.GetNthArmorAddon(1) ; Torso
+	BodyParts[2] = MateraBody.GetNthArmorAddon(2) ; Hands 
+	BodyParts[3] = MateraBody.GetNthArmorAddon(3) ; Feet
 
-	MateraTorso.RegisterForNiNodeUpdate()
-	MateraHands.RegisterForNiNodeUpdate()
-	MateraFeet.RegisterForNiNodeUpdate()
-	MateraTail.RegisterForNiNodeUpdate()
+	BodyParts[0].RegisterForNiNodeUpdate()
+	BodyParts[1].RegisterForNiNodeUpdate()
+	BodyParts[2].RegisterForNiNodeUpdate()
+	BodyParts[3].RegisterForNiNodeUpdate()
 	Log("Initialisation complete")
 EndFunction
 
@@ -276,11 +271,11 @@ Function FindColour(Float ColourOption)
 	CurrentColour = ColourChoice
 
 	 If(ColourChoice <= 29 ) ; Sanity check, should never exceed 29 but you never know.
-		FemaleBodyTexture = FemaleBodyColour_List.GetAt(ColourChoice) as TextureSet
-		FemaleHandsTexture = FemaleHandsColour_List.GetAt(ColourChoice) as TextureSet
-		MaleBodyTexture = MaleBodyColourList.GetAt(ColourChoice) as TextureSet
-		MaleHandsTexture = MaleHandscolourList.GetAt(ColourChoice) as TextureSet
-		TailTexture = TailColourList.GetAt(ColourChoice) as TextureSet
+		Textures[0] = FemaleBodyColour_List.GetAt(ColourChoice) as TextureSet
+		Textures[1] = FemaleHandsColour_List.GetAt(ColourChoice) as TextureSet
+		Textures[2] = MaleBodyColourList.GetAt(ColourChoice) as TextureSet
+		Textures[3] = MaleHandscolourList.GetAt(ColourChoice) as TextureSet
+		Textures[5] = TailColourList.GetAt(ColourChoice) as TextureSet
 	EndIf
 
 	If(IsMale)
@@ -440,31 +435,31 @@ Function SetFemaleBodyColour()
 	
 	If(PlayerRef.GetEquippedArmorInSlot(32) != None)
 		Armor body = PlayerRef.GetEquippedArmorInSlot(32)
-		SearchAndSet(!IsMale, body, "CBBE", FemaleBodyTexture)
-		SearchAndSet(!IsMale, body, "3BBB", FemaleBodyTexture)
+		SearchAndSet(!IsMale, body, "CBBE", Textures[0])
+		SearchAndSet(!IsMale, body, "3BBB", Textures[0])
 	Else
 		; I discovered via netimmerse debug logs that if the part passed in is just a body part, then the root node is what it is looking for.
 		; If the node I pass in is the *only* node there, it fails to find it. However, if a blank string is passed in, it has no issues finding it.
 		; This also means that the player's body is naked.
-		AddOverrideTextureSet(PlayerRef, true, MateraBody, MateraTorso, "", 6, -1, FemaleBodyTexture, true) ; Nodes are the same name on CBBE, CBBE 3BBB, UNP, and BHUNP!
+		AddOverrideTextureSet(PlayerRef, true, MateraBody, BodyParts[1], "", 6, -1, Textures[0], true) ; Nodes are the same name on CBBE, CBBE 3BBB, UNP, and BHUNP!
 	EndIf
 	
 
 	If(PlayerRef.GetEquippedArmorInSlot(33) != None) ; Hands
 		Armor hands = PlayerRef.GetEquippedArmorInSlot(33)
-		SearchAndSet(true, hands, "Hands", FemaleHandsTexture)
+		SearchAndSet(true, hands, "Hands", Textures[1])
 	Else
 		; Player is wearing nothing on their hands.
-		PartCheck(true, MateraHands, "Hands", FemaleHandsTexture)
+		PartCheck(true, BodyParts[2], "Hands", Textures[1])
 	EndIf
 	
 
 	If(PlayerRef.GetEquippedArmorInSlot(37) != None) ; Feet
 		Armor feet = PlayerRef.GetEquippedArmorInSlot(37)
-		SearchAndSet(true, feet, "Feet", FemaleBodyTexture)
+		SearchAndSet(true, feet, "Feet", Textures[0])
 	Else
 		; The player has (literal) cold feet because they're wearing nothing there.
-		PartCheck(true, MateraFeet, "Feet", FemaleBodyTexture)
+		PartCheck(true, BodyParts[3], "Feet", Textures[0])
 	EndIf
 
 	processing = false
@@ -482,10 +477,10 @@ Function SetTailColour()
 	; Maybe other tail types in the future. If I can figure out how to have swappable tails, that would be fantastic.
 
 	If(TailType == 0)		
-        AddOverrideTextureSet(PlayerRef, true, MateraBody, MateraTail, "TailM", 6, -1, TailTexture, true)
+        AddOverrideTextureSet(PlayerRef, true, MateraBody, BodyParts[0], "TailM", 6, -1, Textures[4], true)
 		
 	ElseIf(TailType == 1)
-		AddOverrideTextureSet(PlayerRef, true, MateraBody, MateraTail, "Albino", 6, -1, TailTexture, true)
+		AddOverrideTextureSet(PlayerRef, true, MateraBody, BodyParts[0], "Albino", 6, -1, Textures[4], true)
 	EndIf
 EndFunction
 
@@ -616,23 +611,23 @@ Actor Function GetPlayerRef()
 EndFunction
 
 TextureSet Function GetFemaleBodyTex()
-	return FemaleBodyTexture
+	return Textures[0]
 EndFunction 
 
 TextureSet Function GetMaleBodyTex()
-	return MaleBodyTexture
+	return Textures[2]
 EndFunction
 
 TextureSet Function GetFemaleHandsTex()
-	return FemaleHandsTexture
+	return Textures[1]
 EndFunction
 
 TextureSet Function GetMaleHandsTex()
-	return MaleHandsTexture
+	return Textures[3]
 EndFunction
 
 TextureSet Function GetTailTex()
-	return TailTexture
+	return Textures[4]
 EndFunction
 
 Armor Function GetMateraBody()
