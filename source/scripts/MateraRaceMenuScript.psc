@@ -13,6 +13,43 @@ import NiOverride
 ; If this methods works, I can also use it to do tail swapping real easily. I really hope I can use this method instead. I want multiple tail options. I hated the absolute nonsense with headparts. 
 ; I need to check the node of all the ears, see what their names are. Do a "If armoraddonnodeexists.. if/else chain", and for the love of all that is holy, remember to pass in a blank string as the node.
 
+; Ears could be slot 43 "Ears", or slot 58 "Unnamed". Tails are always slot 40. This will also allow me to strip out a lot of the fairly complex and slow head part changing code.
+; While that took a while to write, if this method works so much better, I'll do it. I essentially took the really long and painful way first, then discovered a theoretically much better way to do it.
+; I actually tried to do it this way initially, but I had not yet begun the descent to madness trying to understand NiOverride.
+
+;/
+New ear changing "pseudocode"
+
+Within the InitialiseValues() function, the ears is also set. 
+When the slider is changed, a function is called.
+Define (if not already done) an Integer "EarType"
+Define an ArmorAddon "CurrentEar", and ""
+
+Function ChangeEarType()
+	String CurrentEarsModel
+	String NewEarsModel
+	ArmorAddon NewEar
+	
+	If(IsMale)
+		CurrentEarsModel = MateraEars.GetModelPath(false, false)
+
+		NewEar = MateraEarsList.GetAt(EarType) as ArmorAddon
+		NewEarsModel = NewEar.GetModelPath(false, false)
+
+		MateraEar.SetModelPath(NewEars, false, false)
+		AddOverrideTextureSet()
+		
+	Else
+		CurrentEarsModel = MateraEars.GetModelPath(false, true)
+	EndIf
+
+	PlayerRef.QueueNiNodeUpdate()
+EndFunction
+
+
+
+I will also need to construct a new colour changing function on the ears.
+/;
 
 ; To fix (what is known to not work):
 ; Currently, nothing majorly broken.
@@ -38,6 +75,8 @@ Armor Property MateraBody Auto
 Race Property MateraRace Auto
 Race Property MateraVampireRace Auto
 
+
+; I treat the formlists as arrays, because that's what they look like to me...and how they behave.
 ; I had to make a lot of HeadParts (Thank you SSE Edit scripts for saving me about 3 hours) and put them into FormLists, as they're head parts. Not armors or armor addons, and therefore I was unable to easily
 ; change textures on them. That, and at the time I did it this way, I had already spent a solid 5 days on trying to swap the ears out and changing their texturesets alone...This way works reliably. 
 FormList Property ElinEarsList Auto
@@ -52,11 +91,14 @@ FormList Property SmallTuftsEarsList Auto
 FormList Property SpikyEarsList Auto
 FormList Property MiscMateraHeadPartsList Auto
 
+FormList Property EarsAddonList Auto ; This formlist contains one of each ear type.
+
 FormList Property FemaleBodyColour_List Auto
 FormList Property FemaleHandsColour_List Auto
 FormList Property MaleBodyColourList Auto
 FormList Property MaleHandsColourList Auto
 FormList Property TailColourList Auto
+FormList Property MainEarsColourList Auto
 
 TextureSet[] Textures
 ArmorAddon[] BodyParts
@@ -159,7 +201,7 @@ EndEvent
 Event OnSliderRequest(Actor player, ActorBase playerBase, Race actorRace, bool isFemale)
 	AddSliderEx("Fur Colour", CATEGORY_KEY, "matera_body_colour", 0.0, 29.0, 1.0, MateraBodyColour)
 	AddSliderEx("Ear Style", CATEGORY_KEY, "matera_ear_style", 0.0, 7.0, 1.0, MateraEar)
-	;AddSliderEx("Tail Type", CATEGORY_KEY, "matera_tail_type", 0.0, 1.0, 1.0, MateraTailType)
+;	AddSliderEx("Tail Type", CATEGORY_KEY, "matera_tail_type", 0.0, 1.0, 1.0, MateraTailType)
 EndEvent
 
 
@@ -191,8 +233,8 @@ EndEvent
 ; Variable and property initialisation functions. They pretty much do what they say.
 
 Function InitialiseValues()
-	Textures = new TextureSet[5] ; 0 = Female Body, 1 = Female Hands, 2 = Male Body, 3 = Male Hands, 4 = Tail (There may be more added.)
-	BodyParts = new ArmorAddon[4] ; 0 = Tail, 1 = Torso, 2 = Hands, 3 = Feet 
+	Textures = new TextureSet[6] ; 0 = Female Body, 1 = Female Hands, 2 = Male Body, 3 = Male Hands, 4 = Tail (There may be more added.)
+	BodyParts = new ArmorAddon[5] ; 0 = Tail, 1 = Torso, 2 = Hands, 3 = Feet, 4 = Ears
 	HeadParts = new HeadPart[8]
 
 	Textures[0] = FemaleBodyColour_List.GetAt(DefaultColour) as TextureSet
@@ -200,6 +242,7 @@ Function InitialiseValues()
 	Textures[2] = MaleBodyColourList.GetAt(DefaultColour) as TextureSet
 	Textures[3] = MaleHandscolourList.GetAt(DefaultColour) as TextureSet
 	Textures[4] = TailColourList.GetAt(DefaultColour) as TextureSet
+;	Textures[5] = MainEarsColourList.GetAt(DefaultColour) as TextureSet	
 	
 	BlankEars = MiscMateraHeadPartsList.GetAt(0) as HeadPart
 	DefaultEars = MiscMateraHeadPartsList.GetAt(1) as HeadPart
@@ -223,11 +266,14 @@ Function InitialiseBodyParts()
 	BodyParts[1] = MateraBody.GetNthArmorAddon(1) ; Torso
 	BodyParts[2] = MateraBody.GetNthArmorAddon(2) ; Hands 
 	BodyParts[3] = MateraBody.GetNthArmorAddon(3) ; Feet
+;	BodyParts[4] = MateraBody.GetNthArmorAddon(4) ; Ears
 
+; I have no idea if I actually need to do this, but things work with it in, so I'll leave it until I've confirmed they are not needed.
 	BodyParts[0].RegisterForNiNodeUpdate()
 	BodyParts[1].RegisterForNiNodeUpdate()
 	BodyParts[2].RegisterForNiNodeUpdate()
 	BodyParts[3].RegisterForNiNodeUpdate()
+;	BodyParts[4].RegisterForNiNodeUpdate()
 	Log("Initialisation complete")
 EndFunction
 
@@ -293,6 +339,7 @@ Function FindColour(Float ColourOption)
 		Textures[2] = MaleBodyColourList.GetAt(ColourChoice) as TextureSet
 		Textures[3] = MaleHandscolourList.GetAt(ColourChoice) as TextureSet
 		Textures[5] = TailColourList.GetAt(ColourChoice) as TextureSet
+;		Textures[6] = MainEarsColourList.GetAt(ColourChoice) as TextureSet		
 	EndIf
 
 	If(IsMale)
@@ -314,7 +361,8 @@ EndFunction
 
 
 ;---------------------------------------------------------------------------------------------------------------------
-; Ear section. This section handles anything relating with the ears.
+; Ear section. This section handles anything relating with the ears. In theory, if my new ear changing method works, I can remove this entire section.
+
 
 
 ; I wish switch statements existed in Papyrus. That would make thise cleaner.
