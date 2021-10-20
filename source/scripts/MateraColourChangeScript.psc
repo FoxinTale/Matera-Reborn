@@ -74,28 +74,28 @@ Event OnObjectEquipped(Form BaseObject, ObjectReference Ref)
 
             If(arm.GetSlotMask() == 4)
                 If(IsMale)
-;                    SearchAndSetBody(false, arm, mrms.GetMaleBodyTex())
+;                   mrms.SearchAndSetBody(false, arm, mrms.GetMaleBodyTex())
                     SearchAndSetBody(false, arm, BodyTextures[2])
                 Else
-;                    SearchAndSetBody(true, arm, mrms.GetFemaleBodyTex())
+;                   mrms.SearchAndSetBody(true, arm, mrms.GetFemaleBodyTex())
                     SearchAndSetBody(true, arm, BodyTextures[0])
                 EndIf
 
             ElseIf(arm.GetSlotMask() == 8)
                 If(IsMale)
-;                    mrms.SearchAndSet(false, arm, "Hands", mrms.GetMaleHandsTex()) ; I have no idea if this is the correct node for male hands. I don't think it is.
+;                   mrms.SearchAndSet(false, arm, "Hands", mrms.GetMaleHandsTex()) ; I have no idea if this is the correct node for male hands. I don't think it is.
                     SearchAndSet(false, arm, "Hands", BodyTextures[3])
                 Else
-;                    mrms.SearchAndSet(true, arm, "Hands", mrms.GetFemaleHandsTex())
+;                   mrms.SearchAndSet(true, arm, "Hands", mrms.GetFemaleHandsTex())
                     SearchAndSet(true, arm, "Hands", BodyTextures[1])
                 EndIf
 
             ElseIf(arm.GetSlotMask() == 80) ; Slot 128 temporarily removed.
                 If(IsMale)
-;                    mrms.SearchAndSet(false, arm, "Feet", mrms.GetMaleBodyTex()) ; I have no idea if this is the correct node for male feet. I don't think it is.
+;                   mrms.SearchAndSet(false, arm, "Feet", mrms.GetMaleBodyTex()) ; I have no idea if this is the correct node for male feet. I don't think it is.
                     SearchAndSet(false, arm, "Feet", BodyTextures[2])
                 Else
-;                   mrms.SearchAndSet(true, arm, "Feet", mrms.GetFemaleBodyTex())
+;                  mrms.SearchAndSet(true, arm, "Feet", mrms.GetFemaleBodyTex())
                    SearchAndSet(true, arm, "Feet", BodyTextures[0])
                 EndIf
 
@@ -120,26 +120,26 @@ Event OnObjectUnEquipped(Form BaseObject, ObjectReference Ref)
                 If(IsMale)
                     ;aaaaaaaa
                 Else
-;                    AddOverrideTextureSet(PlayerRef, true, MateraBody, mrms.GetMateraTorso(), "", 6, -1, mrms.GetFemaleBodyTex(), true)
+;                   AddOverrideTextureSet(PlayerRef, true, MateraBody, mrms.GetMateraTorso(), "", 6, -1, mrms.GetFemaleBodyTex(), true)
                     AddOverrideTextureSet(PlayerRef, true, MateraBody, BodyParts[0], "", 6, -1, BodyTextures[0], true)
                 EndIf
 
             ElseIf(arm.GetSlotMask() == 8) ; Hands, slot 33
 ;               AddOverrideTextureSet(PlayerRef, true, MateraBody, BodyParts[1], "", 6, -1, BodyTextures[1], true)
                If(IsMale)
-;                    SetColour(mrms.GetMateraHands(), "Hands", mrms.GetMaleHandsTex())
+;                   SetColour(mrms.GetMateraHands(), "Hands", mrms.GetMaleHandsTex())
                     SetColour(BodyParts[1], "Hands", BodyTextures[3])
                Else
-;                    SetColour(mrms.GetMateraHands(), "Hands", mrms.GetFemaleHandsTex())
+;                   SetColour(mrms.GetMateraHands(), "Hands", mrms.GetFemaleHandsTex())
                     SetColour(BodyParts[1], "Hands", BodyTextures[1])
                EndIf
 
             ElseIf(arm.GetSlotMask() == 80 || arm.GetSlotMask() == 128) ; Feet, Slot 37
                 If(IsMale)
-;                    SetColour(mrms.GetMateraFeet(), "Feet", mrms.GetMaleBodyTex())
+;                   SetColour(mrms.GetMateraFeet(), "Feet", mrms.GetMaleBodyTex())
                     SetColour(BodyParts[2], "Feet", BodyTextures[2])
                 Else
-;                    SetColour(mrms.GetMateraFeet(), "Feet", mrms.GetFemaleBodyTex())
+;                   SetColour(mrms.GetMateraFeet(), "Feet", mrms.GetFemaleBodyTex())
                     SetColour(BodyParts[2], "Feet", BodyTextures[0])
                 EndIf
 
@@ -176,18 +176,10 @@ EndFunction
 ; Were this not taken into account, it is possible that the feet texture gets applied to the claws or nails, and we don't want that.
 Function SetColour(ArmorAddon bodypart, String node, TextureSet tex)
     If(HasArmorAddonNode(PlayerRef, false, MateraBody, bodypart, node, true))
-        ;If(IsMale)
 ;        AddOverrideTextureSet(PlayerRef, !mrms.GetIsMale(), MateraBody, bodypart, node, 6, -1, tex, true)
         AddOverrideTextureSet(PlayerRef, !IsMale, MateraBody, bodypart, node, 6, -1, tex, true)
-        ;Else
-
-        ;EndIf
     Else
-       ; If(IsMale)
         AddOverrideTextureSet(PlayerRef, !IsMale, MateraBody, bodypart, "", 6, -1, tex, true)
-        ;Else
-         ;   AddOverrideTextureSet(PlayerRef, true, MateraBody, bodypart, "", 6, -1, tex, true)
-        ;EndIf
     EndIf
 EndFunction
 
