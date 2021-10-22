@@ -77,19 +77,6 @@ Race Property MateraVampireRace Auto
 
 
 ; I treat the formlists as arrays, because that's what they look like to me...and how they behave.
-; I had to make a lot of HeadParts (Thank you SSE Edit scripts for saving me about 3 hours) and put them into FormLists, as they're head parts. Not armors or armor addons, and therefore I was unable to easily
-; change textures on them. That, and at the time I did it this way, I had already spent a solid 5 days on trying to swap the ears out and changing their texturesets alone...This way works reliably. 
-FormList Property ElinEarsList Auto
-FormList Property ElvenEarsList Auto
-FormList Property FoxEarsList Auto
-FormList Property LopsidedEarsList Auto
-FormList Property MateraEarsList Auto
-FormList Property RogueEarsList Auto
-FormList Property SidewaysEarsList Auto
-FormList Property SmallEarsList Auto
-FormList Property SmallTuftsEarsList Auto
-FormList Property SpikyEarsList Auto
-FormList Property MiscMateraHeadPartsList Auto
 
 FormList Property EarsAddonList Auto ; This formlist contains one of each ear type.
 
@@ -100,20 +87,11 @@ FormList Property MaleHandsColourList Auto
 FormList Property TailColourList Auto
 FormList Property MainEarsColourList Auto
 
-TextureSet[] Textures
+TextureSet[] Property Textures Global
 ArmorAddon[] BodyParts
-HeadPart[] HeadParts
 
 ; Possible global variables. If I can be clever, I want to use as little as possible.
 ; For Is male and is Matera. Possible values include: 00 (Not male, not Matera), 01 (Not male, Is Matera), 10 (Is male, is not Matera), and 11 (Is male, Is Matera)
-HeadPart DefaultEars
-HeadPart CurrentEars
-HeadPart NewEars
-HeadPart BlankEars
-HeadPart PrevEars
-HeadPart MateraFemaleHead
-HeadPart MateraMaleHead
-
 
 Float MateraEar = 0.0
 Float MateraColour = 10.0
@@ -231,16 +209,10 @@ Function InitialiseValues()
 	Textures[4] = TailColourList.GetAt(DefaultColour) as TextureSet
 	Textures[5] = MainEarsColourList.GetAt(DefaultColour) as TextureSet	
 	
-	BlankEars = MiscMateraHeadPartsList.GetAt(0) as HeadPart
-	DefaultEars = MiscMateraHeadPartsList.GetAt(1) as HeadPart
-	MateraFemaleHead = MiscMateraHeadPartsList.GetAt(2) as HeadPart
-	MateraMaleHead = MiscMateraHeadPartsList.GetAt(3) as HeadPart
-	
 	If(PlayerRef == None)
 		PlayerRef = Game.GetPlayer()
 	EndIf
 
-	CurrentEars = DefaultEars
 	PB = PlayerRef.GetActorBase()
 
 	InitialiseBodyParts()
@@ -305,7 +277,7 @@ Function CheckBodyType()
 EndFunction
 
 
-Function CheckSex()
+Function CheckSex() Global
 	If(PB.GetSex() == 0)
 		IsMale = true
 	Else
@@ -313,8 +285,6 @@ Function CheckSex()
 	EndIf
 EndFunction
 ;---------------------------------------------------------------------------------------------------------------------
-; The formlist handling
-
 
 ; This searches the colour formlists for their appropriate colour, then sets the textures to what it finds. 
 Function FindColour(Float ColourOption) 
@@ -350,7 +320,7 @@ EndFunction
 
 ; The colour changing functions. 
 ; I would have loved to offload these to the "MateraColourChangeScript", but the creation kit had a stick up its ass and wouldn't let me set the property.
-Function SetFemaleBodyColour()
+Function SetFemaleBodyColour() Global
 	processing = true
 	
 	If(PlayerRef.GetEquippedArmorInSlot(32) != None)
@@ -392,7 +362,7 @@ EndFunction
 	
 
 ; I do have plans for multiple tail types.
-Function SetTailColour()
+Function SetTailColour() Global
 	; Beta Matera (Tail type 0) node: "TailM", Original Matera (Tail Type 1)Node: "Albino"
 	; Maybe other tail types in the future. If I can figure out how to have swappable tails, that would be fantastic.
 
@@ -410,13 +380,13 @@ EndFunction
 
 
 ; Searches an armor piece for the passed in node.
-Function SearchAndSet(bool isFemale, Armor arm, String node, TextureSet tex) ; Full name would be SearchForNodeAndSetColourIfNodeExists, but that's too damn long.
+Function SearchAndSet(bool isFemale, Armor arm, String node, TextureSet tex) Global; Full name would be SearchForNodeAndSetColourIfNodeExists, but that's too damn long.
 	int i = 0 
 	int addoncount = arm.GetNumArmorAddons()
 
 	While(i < addoncount)
-		If(HasArmorAddonNode(PlayerRef, false, arm, arm.GetNthArmorAddon(i), node, true))
-			AddOverrideTextureSet(PlayerRef, isFemale, arm, arm.GetNthArmorAddon(i), node, 6, -1, tex, false)
+		If(HasArmorAddonNode(Game.GetPlayer(), false, arm, arm.GetNthArmorAddon(i), node, true))
+			AddOverrideTextureSet(Game.GetPlayer(), isFemale, arm, arm.GetNthArmorAddon(i), node, 6, -1, tex, false)
 			i = addoncount ; Break out of the loop once the node has been found.
 		Else
 			Log("Node " + node + " not found on armor piece " + arm.GetName() + ".")
@@ -442,7 +412,7 @@ EndFunction
 
 
 ; This outputs to the Papyrus log file the passed in string with a "pre-pend" I think it's called.
-Function Log(String s)
+Function Log(String s) Global
 	Debug.Trace("(Matera Reborn) |  " + s)
 EndFunction
 
@@ -457,21 +427,9 @@ EndFunction
 ; If someone is reading this and knows how to do it, do it. Most, if not all the code exists in both scripts to do it.  
 
 
-;/
+
 bool Function GetIsMale() ; If it's true, they're male, if not, female. Pretty simple. 
 	return IsMale
-EndFunction
-
-bool Function GetIsFirstRun()
-	return FirstRun
-EndFunction
-
-bool Function SetProcessing( bool proc)
-	processing = proc
-EndFunction
-
-bool Function GetProcessing()
-	return processing
 EndFunction
 
 int Function GetTailType()
@@ -486,23 +444,23 @@ Actor Function GetPlayerRef()
 	return PlayerRef
 EndFunction
 
-TextureSet Function GetFemaleBodyTex()
+TextureSet Function GetFemaleBodyTex() Global
 	return Textures[0]
 EndFunction 
 
-TextureSet Function GetMaleBodyTex()
+TextureSet Function GetMaleBodyTex() Global
 	return Textures[2]
 EndFunction
 
-TextureSet Function GetFemaleHandsTex()
+TextureSet Function GetFemaleHandsTex() Global
 	return Textures[1]
 EndFunction
 
-TextureSet Function GetMaleHandsTex()
+TextureSet Function GetMaleHandsTex() Global
 	return Textures[3]
 EndFunction
 
-TextureSet Function GetTailTex()
+TextureSet Function GetTailTex() Global
 	return Textures[4]
 EndFunction
 
@@ -519,11 +477,9 @@ ArmorAddon Function GetMateraHands()
 EndFunction
 
 ArmorAddon Function GetTail()
-	return MateraTail
+	return BodyParts[0]
 EndFunction 
 
 ArmorAddon Function GetMateraFeet()
 	return MateraFeet
 EndFunction
-
-/;
