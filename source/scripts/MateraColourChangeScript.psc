@@ -1,32 +1,25 @@
 Scriptname MateraColourChangeScript extends ReferenceAlias
 
 import NiOverride
-; There's a lot of repeated code in here. Blame the game for being a stupid piece of shit and not recognising the goddamn script properties.
-; I had hoped to simply reference it, and just use the below "mrms.FunctionName()", but apparently the game is too damn stupid to realize this is what I'm telling it to do.
+
 Actor Property PlayerRef Auto
-MateraRaceMenuScript Property mrms Auto  ;Abbreviation of the script name, Matera Race Menu Script
-Armor Property MateraBody Auto
+Armor Property MateraBody Auto 
 GlobalVariable Property BodyColorGlobal Auto
 
 Race Property MateraRace Auto
 Race Property MateraVampireRace Auto
 
-FormList Property FemaleBodyColour_List Auto
-FormList Property FemaleHandsColour_List Auto
-FormList Property MaleBodyColourList Auto
-FormList Property MaleHandsColourList Auto
-FormList Property TailColourList Auto
-
 Int BodyColour
 Int TailType = 0
 
-Bool IsMale = true
+;Bool IsMale = true
 Bool IsMatera = false
-Bool processing = false
+Bool Property processing
 
 
 Event OnInit()
     RegisterForMenu("RaceSex Menu")
+    processing = false
     CheckValues()
 EndEvent
 
@@ -38,17 +31,17 @@ Event OnPlayerLoadGame()
     Utility.Wait(0.2)
 
     If(IsMatera)
-		If(IsMale)
+		If(MateraRaceMenuScript.GetIsMale())
 			SetMaleBodyColour()
 		Else
-			mrms.SetFemaleBodyColour()
+			SetFemaleBodyColour()
 		EndIf
 
 		While(processing) ; It may take a little bit to process through the armor and addon nodes, so wait until that is done before moving on.
 			Utility.Wait(0.1)
 		EndWhile
 
-		MateraRaceMenuScript.SetTailColour()
+		SetTailColour()
 		PlayerRef.QueueNiNodeUpdate()
 	EndIf
 EndEvent
@@ -56,7 +49,6 @@ EndEvent
 
 Event OnMenuClose(String menuname)
 	If(MenuName == "RaceSex Menu")
-        ;Utility.Wait(15.0)
         CheckValues()
     EndIf
 EndEvent
@@ -68,26 +60,24 @@ Event OnObjectEquipped(Form BaseObject, ObjectReference Ref)
             Armor arm = BaseObject as Armor
 
             If(arm.GetSlotMask() == 4)
-                If(IsMale)
+                If(MateraRaceMenuScript.GetIsMale())
                    SearchAndSetBody(false, arm, MateraRaceMenuScript.GetMaleBodyTex())
                 Else
                     SearchAndSetBody(true, arm, MateraRaceMenuScript.GetFemaleBodyTex())
                 EndIf
 
             ElseIf(arm.GetSlotMask() == 8)
-                If(IsMale)
-                    MateraRaceMenuScript.SearchAndSet(false, arm, "Hands", MateraRaceMenuScript.GetMaleHandsTex()) ; I have no idea if this is the correct node for male hands. I don't think it is.
+                If(MateraRaceMenuScript.GetIsMale())
+                    SearchAndSet(false, arm, "Hands", MateraRaceMenuScript.GetMaleHandsTex()) ; I have no idea if this is the correct node for male hands. I don't think it is.
                 Else
-                    MateraRaceMenuScript.SearchAndSet(true, arm, "Hands", MateraRaceMenuScript.GetFemaleHandsTex())
+                    SearchAndSet(true, arm, "Hands", MateraRaceMenuScript.GetFemaleHandsTex())
                 EndIf
 
             ElseIf(arm.GetSlotMask() == 80) ; Slot 128 temporarily removed.
-                If(IsMale)
-                   MateraRaceMenuScript.SearchAndSet(false, arm, "Feet", MateraRaceMenuScript.GetMaleBodyTex()) ; I have no idea if this is the correct node for male feet. I don't think it is.
-;                    SearchAndSet(false, arm, "Feet", BodyTextures[2])
+                If(MateraRaceMenuScript.GetIsMale())
+                   SearchAndSet(false, arm, "Feet", MateraRaceMenuScript.GetMaleBodyTex()) ; I have no idea if this is the correct node for male feet. I don't think it is.
                 Else
-                    MateraRaceMenuScript.SearchAndSet(true, arm, "Feet", MateraRaceMenuScript.GetFemaleBodyTex())
-;                   SearchAndSet(true, arm, "Feet", BodyTextures[0])
+                   SearchAndSet(true, arm, "Feet", MateraRaceMenuScript.GetFemaleBodyTex())
                 EndIf
 
             Else
@@ -108,29 +98,25 @@ Event OnObjectUnEquipped(Form BaseObject, ObjectReference Ref)
             Armor arm  = BaseObject as Armor
             
             If(arm.GetSlotMask() == 4) ; Just the body, slot 32.
-                If(IsMale)
+                If(MateraRaceMenuScript.GetIsMale())
                     ;aaaaaaaa
                 Else
-;                   AddOverrideTextureSet(PlayerRef, true, MateraBody, mrms.GetMateraTorso(), "", 6, -1, mrms.GetFemaleBodyTex(), true)
-                    AddOverrideTextureSet(PlayerRef, true, MateraBody, BodyParts[0], "", 6, -1, BodyTextures[0], true)
+                   AddOverrideTextureSet(PlayerRef, true, MateraBody, MateraRaceMenuScript.GetMateraTorso(), "", 6, -1, MateraRaceMenuScript.GetFemaleBodyTex(), true)
                 EndIf
 
             ElseIf(arm.GetSlotMask() == 8) ; Hands, slot 33
 ;               AddOverrideTextureSet(PlayerRef, true, MateraBody, BodyParts[1], "", 6, -1, BodyTextures[1], true)
-               If(IsMale)
+               If(MateraRaceMenuScript.GetIsMale())
                    SetColour(MateraRaceMenuScript.GetMateraHands(), "Hands", MateraRaceMenuScript.GetMaleHandsTex())
                Else
-;                   SetColour(mrms.GetMateraHands(), "Hands", mrms.GetFemaleHandsTex())
-                    SetColour(BodyParts[1], "Hands", BodyTextures[1])
+                   SetColour(MateraRaceMenuScript.GetMateraHands(), "Hands", MateraRaceMenuScript.GetFemaleHandsTex())
                EndIf
 
             ElseIf(arm.GetSlotMask() == 80 || arm.GetSlotMask() == 128) ; Feet, Slot 37
-                If(IsMale)
-;                   SetColour(mrms.GetMateraFeet(), "Feet", mrms.GetMaleBodyTex())
-                    SetColour(BodyParts[2], "Feet", BodyTextures[2])
+                If(MateraRaceMenuScript.GetIsMale())
+                   SetColour(MateraRaceMenuScript.GetMateraFeet(), "Feet", MateraRaceMenuScript.GetMaleBodyTex())
                 Else
-;                   SetColour(mrms.GetMateraFeet(), "Feet", mrms.GetFemaleBodyTex())
-                    SetColour(BodyParts[2], "Feet", BodyTextures[0])
+                   SetColour(MateraRaceMenuScript.GetMateraFeet(), "Feet",  MateraRaceMenuScript.GetFemaleBodyTex())
                 EndIf
 
             ElseIf(arm.GetSlotMask() == 4098)
@@ -166,18 +152,15 @@ EndFunction
 ; Were this not taken into account, it is possible that the feet texture gets applied to the claws or nails, and we don't want that.
 Function SetColour(ArmorAddon bodypart, String node, TextureSet tex)
     If(HasArmorAddonNode(PlayerRef, false, MateraBody, bodypart, node, true))
-;        AddOverrideTextureSet(PlayerRef, !mrms.GetIsMale(), MateraBody, bodypart, node, 6, -1, tex, true)
-        AddOverrideTextureSet(PlayerRef, !IsMale, MateraBody, bodypart, node, 6, -1, tex, true)
+        AddOverrideTextureSet(PlayerRef, !MateraRaceMenuScript.GetIsMale(), MateraBody, bodypart, node, 6, -1, tex, true)
     Else
-        AddOverrideTextureSet(PlayerRef, !IsMale, MateraBody, bodypart, "", 6, -1, tex, true)
+        AddOverrideTextureSet(PlayerRef, !MateraRaceMenuScript.GetIsMale(), MateraBody, bodypart, "", 6, -1, tex, true)
     EndIf
 EndFunction
 
 
 Function CheckValues()
     BodyColour = BodyColorGlobal.GetValueInt()
-
-    CheckSex()
     RaceCheck()
 
     If(PlayerRef == None)
@@ -187,30 +170,89 @@ EndFunction
 
 
 ;--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-; Repeated code from Matera Race Menu Script, because the damn thing won't let me use shared scripts for some damn reason.
-; It's literally copied from the Matera Race Menu Script. Comments and all. If someone can get the two scripts to talk, you can remove this entire segment.
+; Colour changing functions.
 
 
-
-; This checks the body part for a node. I mentioned in an earlier comment that if it's the only node, it won't find it. 
-; However, there are mods that add nodes to the hands and/or feet in the shape of nails or claws. This handles that scenario.
-Function PartCheck(Bool female, ArmorAddon bodypart, String node, TextureSet tex)
-	If(HasArmorAddonNode(PlayerRef, false, MateraBody, bodypart, node, true))
-		AddOverrideTextureSet(PlayerRef, female, MateraBody, bodypart, node, 6, -1, tex, true)
-	Else
-		AddOverrideTextureSet(PlayerRef, female, MateraBody, bodypart, "" , 6, -1, tex, true)
-	EndIf
-EndFunction
+Function SetFemaleBodyColour() Global
+	processing = true
 	
+	If(PlayerRef.GetEquippedArmorInSlot(32) != None)
+		Armor body = PlayerRef.GetEquippedArmorInSlot(32)
+		SearchAndSet(!MateraRaceMenuScript.GetIsMale(), body, "CBBE", MateraRaceMenuScript.GetFemaleBodyTex())
+		SearchAndSet(!MateraRaceMenuScript.GetIsMale(), body, "3BBB", MateraRaceMenuScript.GetFemaleBodyTex())
+	Else
+		; I discovered via netimmerse debug logs that if the part passed in is just a body part, then the root node is what it is looking for.
+		; If the node I pass in is the *only* node there, it fails to find it. However, if a blank string is passed in, it has no issues finding it.
+		; This also means that the player's body is naked.
+		AddOverrideTextureSet(PlayerRef, true, MateraBody, MateraRaceMenuScript.GetMateraTorso(), "", 6, -1, MateraRaceMenuScript.GetFemaleBodyTex(), true) ; Nodes are the same name on CBBE, CBBE 3BBB, UNP, and BHUNP!
+	EndIf
+	
+
+	If(PlayerRef.GetEquippedArmorInSlot(33) != None) ; Hands
+		Armor hands = PlayerRef.GetEquippedArmorInSlot(33)
+		SearchAndSet(true, hands, "Hands", MateraRaceMenuScript.GetFemaleHandsTex())
+	Else
+		; Player is wearing nothing on their hands.
+		PartCheck(true, MateraRaceMenuScript.GetMateraHands(), "Hands", MateraRaceMenuScript.GetFemaleBodyTex())
+	EndIf
+	
+
+	If(PlayerRef.GetEquippedArmorInSlot(37) != None) ; Feet
+		Armor feet = PlayerRef.GetEquippedArmorInSlot(37)
+		SearchAndSet(true, feet, "Feet", MateraRaceMenuScript.GetFemaleBodyTex())
+	Else
+		; The player has (literal) cold feet because they're wearing nothing there.
+		PartCheck(true, MateraRaceMenuScript.GetMateraFeet(), "Feet", MateraRaceMenuScript.GetFemaleBodyTex())
+	EndIf
+
+	processing = false
+EndFunction
+
 
 Function SetMaleBodyColour()
 	; Not implemented yet. Awating to make female body work first. CBBE mainly works, UNP is totally untested.
 EndFunction
-	
 
+
+
+; I do have plans for multiple tail types.
+Function SetTailColour() Global
+	; Beta Matera (Tail type 0) node: "TailM", Original Matera (Tail Type 1)Node: "Albino"
+	; Maybe other tail types in the future. If I can figure out how to have swappable tails, that would be fantastic.
+
+	If(TailType == 0)		
+        AddOverrideTextureSet(PlayerRef, true, MateraBody, MateraRaceMenuScript.GetMateraTail(), "TailM", 6, -1, MateraRaceMenuScript.GetTailTex(), false)
+		
+	ElseIf(TailType == 1)
+		AddOverrideTextureSet(PlayerRef, true, MateraBody, MateraRaceMenuScript.GetMateraTail(), "Albino", 6, -1, MateraRaceMenuScript.GetTailTex(), false)
+	EndIf
+EndFunction
+
+
+	
+	
 ;--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ;--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; Utility functions 
+
+
+; Searches an armor piece for the passed in node.
+Function SearchAndSet(bool isFemale, Armor arm, String node, TextureSet tex) Global; Full name would be SearchForNodeAndSetColourIfNodeExists, but that's too damn long.
+	int i = 0 
+	int addoncount = arm.GetNumArmorAddons()
+
+	While(i < addoncount)
+		If(HasArmorAddonNode(Game.GetPlayer(), false, arm, arm.GetNthArmorAddon(i), node, true))
+			AddOverrideTextureSet(Game.GetPlayer(), isFemale, arm, arm.GetNthArmorAddon(i), node, 6, -1, tex, false)
+			i = addoncount ; Break out of the loop once the node has been found.
+		Else
+			Log("Node " + node + " not found on armor piece " + arm.GetName() + ".")
+		EndIf
+		i += 1
+	EndWhile
+EndFunction
+
+
 
 Function SearchAndSetBody(bool IsFemale, Armor arm, TextureSet tex)
 	int i = 0 
@@ -243,10 +285,24 @@ Function SearchAndSetBody(bool IsFemale, Armor arm, TextureSet tex)
 EndFunction
 
 
+
+; This checks the body part for a node. I mentioned in an earlier comment that if it's the only node, it won't find it. 
+; However, there are mods that add nodes to the hands and/or feet in the shape of nails or claws. This handles that scenario.
+Function PartCheck(Bool female, ArmorAddon bodypart, String node, TextureSet tex)
+	If(HasArmorAddonNode(PlayerRef, false, MateraBody, bodypart, node, true))
+		AddOverrideTextureSet(PlayerRef, female, MateraBody, bodypart, node, 6, -1, tex, true)
+	Else
+		AddOverrideTextureSet(PlayerRef, female, MateraBody, bodypart, "" , 6, -1, tex, true)
+	EndIf
+EndFunction
+
+
+
+
 ;--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ;"Debug" functions.
 
-Function Log(String s)
+Function Log(String s) Global
 	Debug.Trace("(Matera Reborn CC) |  " + s) ; CC = Colour Change, so I know which script is logging this.
 EndFunction
 
