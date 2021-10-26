@@ -2,55 +2,6 @@ Scriptname MateraRaceMenuScript extends RaceMenuBase
 
 import NiOverride
 
-; I have thought of a new method to do the ear swapping. I will have to do some testing to see if it works, but if it does, then we'll be avoiding all of the head part nonsense.
-
-;I'm leaving this as more a nopte to myself at just shy of 2:30 in the morning so I do not forget. However, this is why it is on the re-write brance. I had this idea earlier, but only now remembered to write it dowm.
-
-; So, I add a default ear (Elin) to the MateraBody, and that ArmorAddon is gotten.  There is also a default int variable indicating which ear type. 
-; Within the editor, exists one ear of each type, and they are within a formlist property. When the ear style is changed, the nmodel path of the ear in the formlist corresponding to the selected number is gotten.
-; the model path from this ear is then passed in to a  function which then sets the new armor addon path, it updates the texture then queues a NiNode update. 
-
-; If this methods works, I can also use it to do tail swapping real easily. I really hope I can use this method instead. I want multiple tail options. I hated the absolute nonsense with headparts. 
-; I need to check the node of all the ears, see what their names are. Do a "If armoraddonnodeexists.. if/else chain", and for the love of all that is holy, remember to pass in a blank string as the node.
-
-; Ears could be slot 43 "Ears", or slot 58 "Unnamed". Tails are always slot 40. This will also allow me to strip out a lot of the fairly complex and slow head part changing code.
-; While that took a while to write, if this method works so much better, I'll do it. I essentially took the really long and painful way first, then discovered a theoretically much better way to do it.
-; I actually tried to do it this way initially, but I had not yet begun the descent to madness trying to understand NiOverride.
-
-;/
-New ear changing "pseudocode"
-
-Within the InitialiseValues() function, the ears is also set. 
-When the slider is changed, a function is called.
-Define (if not already done) an Integer "EarType"
-Define an ArmorAddon "CurrentEar", and ""
-
-Function ChangeEarType()
-	String CurrentEarsModel
-	String NewEarsModel
-	ArmorAddon NewEar
-	
-	If(IsMale)
-		CurrentEarsModel = MateraEars.GetModelPath(false, false)
-
-		NewEar = MateraEarsList.GetAt(EarType) as ArmorAddon
-		NewEarsModel = NewEar.GetModelPath(false, false)
-
-		MateraEar.SetModelPath(NewEars, false, false)
-		AddOverrideTextureSet()
-		
-	Else
-		CurrentEarsModel = MateraEars.GetModelPath(false, true)
-	EndIf
-
-	PlayerRef.QueueNiNodeUpdate()
-EndFunction
-
-
-
-I will also need to construct a new colour changing function on the ears.
-/;
-
 ; To fix (what is known to not work):
 ; Currently, nothing majorly broken.
 
@@ -63,10 +14,19 @@ I will also need to construct a new colour changing function on the ears.
 ;	- UNP body support once CBBE is complete. That's not going to be fun. (for the naked body parts, this is functional, but for armoured, it is not)
 ;	- Male body support. This will be even worse. 
 
+
+;/
+
+
+What I want to do is replace the headparts with an armor addon, and just swap that model path and textureset. 
+The hard part is finding the right biped slot for these ears.
+I would love to do away with all this head part nonsense. 
+
+I also wish to investigate the usage of NiOverride's "Skin" functions. 
+/;
 Int Property RM_MATERA_VERSION = 1 AutoReadOnly
 Int Property Version = 0 Auto
 String Property CATEGORY_KEY = "racemenu_matera" AutoReadOnly
-;MateraColourChangeScript Property mccs Auto ; Abbreviated. Matera Colour Change Script.
 
 Actor Property PlayerRef Auto
 ActorBase PB ; PlayerBase, but since it's "defined elsewhere", I have to abbreviate it.
@@ -75,34 +35,47 @@ Armor Property MateraBody Auto
 Race Property MateraRace Auto
 Race Property MateraVampireRace Auto
 
-
-; I treat the formlists as arrays, because that's what they look like to me...and how they behave.
-
-FormList Property EarsAddonList Auto ; This formlist contains one of each ear type.
+; I had to make a lot of HeadParts (Thank you SSE Edit scripts for saving me about 3 hours) and put them into FormLists, as they're head parts. Not armors or armor addons, and therefore I was unable to easily
+; change textures on them. That, and at the time I did it this way, I had already spent a solid 5 days on trying to swap the ears out and changing their texturesets alone...This way works reliably. 
+FormList Property ElinEarsList Auto
+FormList Property ElvenEarsList Auto
+FormList Property FoxEarsList Auto
+FormList Property LopsidedEarsList Auto
+FormList Property MateraEarsList Auto
+FormList Property RogueEarsList Auto
+FormList Property SidewaysEarsList Auto
+FormList Property SmallEarsList Auto
+FormList Property SmallTuftsEarsList Auto
+FormList Property SpikyEarsList Auto
+FormList Property MiscMateraHeadPartsList Auto
 
 FormList Property FemaleBodyColour_List Auto
 FormList Property FemaleHandsColour_List Auto
 FormList Property MaleBodyColourList Auto
 FormList Property MaleHandsColourList Auto
 FormList Property TailColourList Auto
-FormList Property MainEarsColourList Auto
 
-; I chose to do these in an array, as opposed to separating them out into individual, due to how array data structures usually work.
-; Typically, arrays are one contiguous piece of memory, instead of potentially 5 or 6 different vairables scattered everywhere, they're all right in one place.
-; Especially for my usage application, this may be ever so slightly faster.
-TextureSet[] Property Textures
-ArmorAddon[] BodyParts
 
-; Possible global variables. If I can be clever, I want to use as little as possible.
-; For Is male and is Matera. Possible values include: 00 (Not male, not Matera), 01 (Not male, Is Matera), 10 (Is male, is not Matera), and 11 (Is male, Is Matera)
+; I decided to make these arrays. While it does hurt code readability, in theory, arrays are a singluar contiguous block of meory or (presumably) save space.
+; This would (also theoretically) enable slightly faster access times due to it being a single continuous block and not being separate, scattered variables.
+TextureSet[] MateraTextures
+ArmorAddon[] MateraParts
 
-;May convert these floats, ints, and bools to arrays later. This is to be decided.
+HeadPart DefaultEars
+HeadPart CurrentEars
+HeadPart NewEars
+HeadPart BlankEars
+HeadPart PrevEars
+HeadPart MateraFemaleHead
+HeadPart MateraMaleHead
+
+; 0 = Ears, 1 = Colour, 2 = Body Colour, 3 = Ears Colour, 4 = Tail colour, 5 = Tail type. Ears and tail colour is unused currently. 
 Float MateraEar = 0.0
 Float MateraColour = 10.0
 Float MateraBodyColour = 10.0
 Float MateraEarsColour = 10.0
 Float MateraTailColour = 10.0
-;Float MateraTailType = 0.0
+Float MateraTailType = 0.0
 
 Int CurrentEar = 0
 Int DefaultColour = 10
@@ -112,7 +85,7 @@ Int EarsPosition = 1 ; Default.
 Int DefaultPos = 1 ; Default
 Int BodyType = 0 ; Default
 
-GlobalVariable Property BodyColor Auto
+GlobalVariable Property BodyColorGlobal Auto
 
 ; There will be a light plugin that sets this value, and the user is asked during installation. 0 = Base game, 1 = CBBE, 2 = 3BBB, 3 = UNP, 4 = UUNP.
 ; I cannot use plugin index checking, as while at least CBBE and 3BBB have plugins, they're both light plugins, and I haven't figured out how to check for those, if it's even possible.
@@ -149,8 +122,14 @@ EndEvent
 
 Event OnMenuOpen(String MenuName)
 	If(MenuName == "RaceSex Menu")
-		CheckSex()
 		RaceCheck()
+		Utility.Wait(0.1)
+
+		If(IsMatera)
+			PrevEars = CurrentEars
+			Utility.Wait(5.0) ; Literally wait for the menus to load and do their things.
+			FixEars()
+		EndIf
 	EndIf
 EndEvent
 
@@ -160,8 +139,16 @@ Event OnMenuClose(String MenuName)
 		If(FirstRun)
 			FirstRun = false
 		EndIf
-		
 		RaceCheck()
+		CheckSex()
+		Utility.Wait(10.0)
+	
+		If(PB != None) ; Sanity check.
+			HeadPartDebug(PB)
+		Else
+			Actorbase PlayerBase = PlayerRef.GetActorBase()
+			HeadPartDebug(PlayerBase)
+		EndIf
 	EndIf
 EndEvent
 
@@ -170,7 +157,7 @@ EndEvent
 Event OnSliderRequest(Actor player, ActorBase playerBase, Race actorRace, bool isFemale)
 	AddSliderEx("Fur Colour", CATEGORY_KEY, "matera_body_colour", 0.0, 29.0, 1.0, MateraBodyColour)
 	AddSliderEx("Ear Style", CATEGORY_KEY, "matera_ear_style", 0.0, 7.0, 1.0, MateraEar)
-;	AddSliderEx("Tail Type", CATEGORY_KEY, "matera_tail_type", 0.0, 1.0, 1.0, MateraTailType)
+	AddSliderEx("Tail Type", CATEGORY_KEY, "matera_tail_type", 0.0, 1.0, 1.0, MateraTailType) 
 EndEvent
 
 
@@ -179,21 +166,21 @@ Event OnSliderChanged(string callback, float value)
 	If(callback == "matera_ear_style")
 		If(value <= 9.0)
 			MateraEar = value
-;			SetEarType(value)
+			SetEarType(value)
 		EndIf
 
 	ElseIf(callback == "matera_body_colour")
 		If(value <= 29.0)
 			MateraBodyColour = value
-			BodyColor.SetValue(value)
+			BodyColorGlobal.SetValue(value)
 			FindColour(value)
 		EndIf
 
-	;ElseIf(callback == "matera_tail_type")
-	;	If(value <= 1.0)
-			;MateraTailType = value
-			;SetTailType()
-	;	Endif
+	ElseIf(callback == "matera_tail_type")
+		If(value <= 1.0)
+			MateraTailType = value
+			SetTailType()
+		Endif
 	EndIf
 EndEvent
 
@@ -202,41 +189,42 @@ EndEvent
 ; Variable and property initialisation functions. They pretty much do what they say.
 
 Function InitialiseValues()
-	Textures = new TextureSet[6] ; 0 = Female Body, 1 = Female Hands, 2 = Male Body, 3 = Male Hands, 4 = Tail (There may be more added.)
-	BodyParts = new ArmorAddon[5] ; 0 = Tail, 1 = Torso, 2 = Hands, 3 = Feet, 4 = Ears
-	HeadParts = new HeadPart[8]
+	MateraTextures = New TextureSet[6] ; 0 = Female Body, 1 = Female Hands, 2 = Male Body, 3 = Male Hands, 4 = Tail, 5 = Ears
+	MateraParts = new ArmorAddon[5] ; 0 = Tail, 1 = Torso, 2 = Hands, 3 = Feet, 4 = Ears. I'm unsure if the last one will be used, but I'm putting it there in case I do figure it out.
 
-	Textures[0] = FemaleBodyColour_List.GetAt(DefaultColour) as TextureSet
-	Textures[1] = FemaleHandsColour_List.GetAt(DefaultColour) as TextureSet
-	Textures[2] = MaleBodyColourList.GetAt(DefaultColour) as TextureSet
-	Textures[3] = MaleHandscolourList.GetAt(DefaultColour) as TextureSet
-	Textures[4] = TailColourList.GetAt(DefaultColour) as TextureSet
-	Textures[5] = MainEarsColourList.GetAt(DefaultColour) as TextureSet	
+	MateraTextures[0] = FemaleBodyColour_List.GetAt(DefaultColour) as TextureSet
+	MateraTextures[1] = FemaleHandsColour_List.GetAt(DefaultColour) as TextureSet
+	MateraTextures[2] = MaleBodyColourList.GetAt(DefaultColour) as TextureSet
+	MateraTextures[3] = MaleHandscolourList.GetAt(DefaultColour) as TextureSet
+	MateraTextures[4] = TailColourList.GetAt(DefaultColour) as TextureSet
+	
+	BlankEars = MiscMateraHeadPartsList.GetAt(0) as HeadPart
+	DefaultEars = MiscMateraHeadPartsList.GetAt(1) as HeadPart
+	MateraFemaleHead = MiscMateraHeadPartsList.GetAt(2) as HeadPart
+	MateraMaleHead = MiscMateraHeadPartsList.GetAt(3) as HeadPart
 	
 	If(PlayerRef == None)
 		PlayerRef = Game.GetPlayer()
 	EndIf
 
+	CurrentEars = DefaultEars
 	PB = PlayerRef.GetActorBase()
 
 	InitialiseBodyParts()
 EndFunction
 
-
+; 0 = Tail, 1 = Torso, 2 = Hands, 3 = Feet, 4 = Ears
 ; One of the more unusual functions I've named, but it does exactly what it says. 
 Function InitialiseBodyParts() 
-	BodyParts[0] = MateraBody.GetNthArmorAddon(0) ; Tail
-	BodyParts[1] = MateraBody.GetNthArmorAddon(1) ; Torso
-	BodyParts[2] = MateraBody.GetNthArmorAddon(2) ; Hands 
-	BodyParts[3] = MateraBody.GetNthArmorAddon(3) ; Feet
-	BodyParts[4] = MateraBody.GetNthArmorAddon(4) ; Ears
+	MateraParts[0] = MateraBody.GetNthArmorAddon(0)
+	MateraParts[1] = MateraBody.GetNthArmorAddon(1)
+	MateraParts[2] = MateraBody.GetNthArmorAddon(2)
+	MateraParts[3] = MateraBody.GetNthArmorAddon(3)
 
-; I have no idea if I actually need to do this, but things work with it in, so I'll leave it until I've confirmed they are not needed.
-	BodyParts[0].RegisterForNiNodeUpdate()
-	BodyParts[1].RegisterForNiNodeUpdate()
-	BodyParts[2].RegisterForNiNodeUpdate()
-	BodyParts[3].RegisterForNiNodeUpdate()
-	BodyParts[4].RegisterForNiNodeUpdate()
+	MateraParts[0].RegisterForNiNodeUpdate()
+	MateraParts[1].RegisterForNiNodeUpdate()
+	MateraParts[2].RegisterForNiNodeUpdate()
+	MateraParts[3].RegisterForNiNodeUpdate()
 	Log("Initialisation complete")
 EndFunction
 
@@ -257,12 +245,9 @@ EndFunction
 ; However, If/when I determine it will not be used, then it will be removed.
 Function CheckBodyType()
 	BodyType = BodyTypeGlobal.GetValueInt()
-	Debug.Trace("Body Type global: " + BodyTypeGlobal)
-	Debug.Trace("Body Type Int: " + BodyType)
 
 	If(BodyType == 0) ; Default value. Could have been either the base game (ew) or what I'm using it as. No option was selected.
-		Debug.MessageBox("No body type was selected during installation. Please reinstall MaTera Reborn, otherwise this will not work.")
-		; Been having issues with this getting falsely triggered.
+		Debug.MessageBox("No body type was selected during installation. Please reinstall, otherwise this will not work.")
 
 	ElseIf(BodyType == 1) ; These names kind of explain themselves.
 		 FemaleBodyNode = "CBBE"
@@ -281,7 +266,7 @@ Function CheckBodyType()
 EndFunction
 
 
-Function CheckSex() Global
+Function CheckSex()
 	If(PB.GetSex() == 0)
 		IsMale = true
 	Else
@@ -289,6 +274,10 @@ Function CheckSex() Global
 	EndIf
 EndFunction
 ;---------------------------------------------------------------------------------------------------------------------
+; The formlist handling
+
+; 0 = Female Body, 1 = Female Hands, 2 = Male Body, 3 = Male Hands, 4 = Tail, 5 = Ears
+
 
 ; This searches the colour formlists for their appropriate colour, then sets the textures to what it finds. 
 Function FindColour(Float ColourOption) 
@@ -296,26 +285,25 @@ Function FindColour(Float ColourOption)
 	CurrentColour = ColourChoice
 
 	 If(ColourChoice <= 29 ) ; Sanity check, should never exceed 29 but you never know.
-		Textures[0] = FemaleBodyColour_List.GetAt(ColourChoice) as TextureSet
-		Textures[1] = FemaleHandsColour_List.GetAt(ColourChoice) as TextureSet
-		Textures[2] = MaleBodyColourList.GetAt(ColourChoice) as TextureSet
-		Textures[3] = MaleHandscolourList.GetAt(ColourChoice) as TextureSet
-		Textures[5] = TailColourList.GetAt(ColourChoice) as TextureSet
-		Textures[6] = MainEarsColourList.GetAt(ColourChoice) as TextureSet		
+		MateraTextures[0] = FemaleBodyColour_List.GetAt(ColourChoice) as TextureSet
+		MateraTextures[1] = FemaleHandsColour_List.GetAt(ColourChoice) as TextureSet
+		MateraTextures[2] = MaleBodyColourList.GetAt(ColourChoice) as TextureSet
+		MateraTextures[3] = MaleHandscolourList.GetAt(ColourChoice) as TextureSet
+		MateraTextures[4] = TailColourList.GetAt(ColourChoice) as TextureSet
 	EndIf
 
 	If(IsMale)
-		MateraColourchangeScript.SetMaleBodyColour()
+		SetMaleBodyColour()
 	Else
-		MateraColourchangeScript.SetFemaleBodyColour()	
+		SetFemaleBodyColour()	
 	EndIf
 
 	While(processing)
 		Utility.Wait(0.1)
 	EndWhile
 
-;	SetEarColour()
-	MateraColourChangeScript.SetTailColour()
+	SetEarColour()
+	SetTailColour()
 
 	Utility.Wait(0.1)
 	PlayerRef.QueueNiNodeUpdate()
@@ -323,8 +311,251 @@ EndFunction
 
 
 ;---------------------------------------------------------------------------------------------------------------------
+; Ear section. This section handles anything relating with the ears.
+
+
+; I wish switch statements existed in Papyrus. That would make thise cleaner.
+Function SetEarColour()
+	HeadPart NewEarColour
+
+	If(CurrentEar == 0)
+		NewEarColour = ElinEarsList.GetAt(CurrentColour) as HeadPart
+
+	ElseIf(CurrentEar == 1)
+		NewEarColour = ElvenEarsList.GetAt(CurrentColour) as HeadPart
+
+	ElseIf(CurrentEar == 2)
+		NewEarColour = LopsidedEarsList.GetAt(CurrentColour) as HeadPart
+
+	ElseIf(CurrentEar == 3)
+		NewEarColour = RogueEarsList.GetAt(CurrentColour) as HeadPart
+
+	ElseIf(CurrentEar == 4)
+		NewEarColour = SidewaysEarsList.GetAt(CurrentColour) as HeadPart
+
+	ElseIf(CurrentEar == 5)
+		NewEarColour = SmallEarsList.GetAt(CurrentColour) as HeadPart
+
+	ElseIf(CurrentEar == 6)
+		NewEarColour = SmallTuftsEarsList.GetAt(CurrentColour) as HeadPart
+
+	ElseIf(CurrentEar == 7)
+		NewEarColour = SpikyEarsList.GetAt(CurrentColour) as HeadPart
+	EndIf
+
+	PrevEars = NewEarColour 
+	CurrentEars = NewEarColour
+	SetEar(NewEarColour, EarsPosition) ; Previously 1
+EndFunction
+
+
+
+
+Function SetEar(HeadPart ear, int slot)
+	If(ear != None) ; Basically a null check.
+		ActorBase PlayerBase = PlayerRef.GetActorBase()
+		HeadPartDebug(PlayerBase)
+
+		If(PlayerBase.GetNthHeadPart(slot) == MateraMaleHead || PlayerBase.GetNthHeadPart(slot) == MateraFemaleHead)
+				Debug.Trace("Why is the head being replaced?")
+				WTFWhyIsThisHappening(PlayerBase, ear)
+		Else
+			PlayerBase.SetNthHeadPart(ear, slot)
+			PlayerRef.QueueNiNodeUpdate()
+		EndIf
+	Else
+		Log("The headpart is nothing.")
+	EndIf
+EndFunction
+
+
+Function SetEarType(Float EarOption)
+	int EarChoice = EarOption as int
+	CurrentEar = EarChoice
+	FormList EarsList
+
+	If(EarChoice == 0)
+		EarsList = ElinEarsList
+
+	ElseIf(EarChoice == 1)
+		EarsList = ElvenEarsList
+
+	ElseIf(EarChoice == 2)
+		EarsList = LopsidedEarsList
+
+	ElseIf(EarChoice == 3)
+		EarsList = RogueEarsList
+
+	ElseIf(EarChoice == 4)
+		EarsList = SidewaysEarsList
+
+	ElseIf(EarChoice == 5)
+		EarsList = SmallEarsList
+
+	ElseIf(EarChoice == 6)
+		EarsList = SmallTuftsEarsList
+
+	ElseIf(EarChoice == 7)
+		EarsList = SpikyEarsList
+
+	ElseIf(EarChoice == 8)
+		EarsList = FoxEarsList
+
+	ElseIf(EarChoice == 9)
+		EarsList = MateraEarsList
+		
+	EndIf
+	PrevEars = CurrentEars
+
+	HeadPartCheck()
+
+	NewEars = EarsList.GetAt(CurrentColour) as HeadPart
+	SetEar(NewEars, EarsPosition) ; Previously 1
+EndFunction
+
+
+Function FixEars()
+	HeadPartCheck()
+	Utility.Wait(0.25) ; Wait for the headpart to be found, then set it.
+	SetEar(CurrentEars, EarsPosition)
+EndFunction
+
+
+; I don't have a better name for this. This is called when, for whatever reason, the current slot that the ears would go into is occupied the head.
+; If not handled, this causes the head to literally be overwritten, leaving a floating pair of eyes with hair.
+Function WTFWhyIsThisHappening(ActorBase AB, HeadPart ear) 
+	int i = 0
+	int headparts = AB.GetNumHeadParts()
+
+	; We do not want to break out of this loop, for sanity's sake. And if any other issues arise in the future, I can deal with them here. 
+	While(i < headparts)
+		If(AB.GetNthHeadPart(i) == DefaultEars)
+			DefaultPos = i
+			EarsPosition = i
+		endIf
+		i += 1
+	EndWhile
+
+	AB.SetNthHeadPart(ear, DefaultPos)
+	PlayerRef.QueueNiNodeUpdate()
+EndFunction
+
+
+;---------------------------------------------------------------------------------------------------------------------
+; The colour changing functions. 
+; I would have loved to offload these to the "MateraColourChangeScript", but the creation kit had a stick up its ass and wouldn't let me set the property.
+
+; 0 = Female Body, 1 = Female Hands, 2 = Male Body, 3 = Male Hands, 4 = Tail, 5 = Ears
+; 0 = Tail, 1 = Torso, 2 = Hands, 3 = Feet, 4 = Ears
+Function SetFemaleBodyColour()
+	processing = true
+	
+	If(PlayerRef.GetEquippedArmorInSlot(32) != None)
+		Armor body = PlayerRef.GetEquippedArmorInSlot(32)
+		SearchAndSet(!IsMale, body, "CBBE", 0)
+		SearchAndSet(!IsMale, body, "3BBB", 0)
+	Else
+		; I discovered via netimmerse debug logs that if the part passed in is just a body part, then the root node is what it is looking for.
+		; If the node I pass in is the *only* node there, it fails to find it. However, if a blank string is passed in, it has no issues finding it.
+		; This also means that the player's body is naked.
+		AddOverrideTextureSet(PlayerRef, true, MateraBody, MateraParts[1], "", 6, -1, MateraTextures[1], true) ; Nodes are the same name on CBBE, CBBE 3BBB, UNP, and BHUNP!
+	EndIf
+	
+
+	If(PlayerRef.GetEquippedArmorInSlot(33) != None) ; Hands
+		Armor hands = PlayerRef.GetEquippedArmorInSlot(33)
+		SearchAndSet(true, hands, "Hands", 1)
+	Else
+		; Player is wearing nothing on their hands.
+		PartCheck(true, MateraParts[2], "Hands", MateraTextures[1])
+	EndIf
+	
+
+	If(PlayerRef.GetEquippedArmorInSlot(37) != None) ; Feet
+		Armor feet = PlayerRef.GetEquippedArmorInSlot(37)
+		SearchAndSet(true, feet, "Feet", 0)
+	Else
+		; The player has (literal) cold feet because they're wearing nothing there.
+		PartCheck(true, MateraParts[3], "Feet", MateraTextures[0])
+	EndIf
+
+	processing = false
+EndFunction
+	
+	
+Function SetMaleBodyColour()
+	; Not implemented yet. Awating to make female body work first. CBBE mainly works, UNP is totally untested.
+EndFunction
+	
+; I do have plans for multiple tail types.
+Function SetTailColour()
+	; Textures array index 4 is the tail texture.
+
+	; Beta Matera (Tail type 0) node: "TailM", Original Matera (Tail Type 1)Node: "Albino"
+	; Maybe other tail types in the future. If I can figure out how to have swappable tails, that would be fantastic.
+
+	If(TailType == 0)		
+        AddOverrideTextureSet(PlayerRef, true, MateraBody, MateraParts[3], "TailM", 6, -1, MateraTextures[4], true)
+		
+	ElseIf(TailType == 1)
+		AddOverrideTextureSet(PlayerRef, true, MateraBody, MateraParts[3], "Albino", 6, -1, MateraTextures[4], true)
+	EndIf
+EndFunction
+
+
+
+
+
+
+;---------------------------------------------------------------------------------------------------------------------
 ; "Utility" Functions.
 
+
+; Searches an armor piece for the passed in node.
+Function SearchAndSet(bool isFemale, Armor arm, String node, int TexOption) ; Full name would be SearchForNodeAndSetColourIfNodeExists, but that's too damn long.
+	int i = 0 
+	int addoncount = arm.GetNumArmorAddons()
+	TextureSet tex = MateraTextures[TexOption]
+
+	While(i < addoncount)
+		If(HasArmorAddonNode(PlayerRef, false, arm, arm.GetNthArmorAddon(i), node, true))
+			AddOverrideTextureSet(PlayerRef, isFemale, arm, arm.GetNthArmorAddon(i), node, 6, -1, tex, true)
+			i = addoncount ; Break out of the loop once the node has been found.
+		Else
+			Log("Node " + node + " not found on armor piece " + arm.GetName() + ".")
+		EndIf
+		i += 1
+	EndWhile
+EndFunction
+
+
+; Sanity checking the headparts. I don't remember why I implemented this, but I remember it was due to some wonkiness in a script.
+Function HeadPartCheck()
+	ActorBase PlayerBase = PlayerRef.GetActorBase()
+
+	int i = 0
+	int headparts = PlayerBase.GetNumHeadParts()
+	HeadPart hp
+
+	HeadPartDebug(PlayerBase)
+
+	While(i < headparts)
+		hp = PlayerBase.GetNthHeadPart(i)
+
+		If(hp.GetName() == DefaultEars.GetName())
+			SetEar(CurrentEars, i)
+			EarsPosition = i
+;			i = headparts ; Break out of the loop.
+		EndIf
+
+		If(PrevEars != None)
+			If(hp.GetName() == PrevEars.GetName())
+				SetEar(BlankEars, i)
+			EndIf
+		EndIf
+		i += 1
+	EndWhile
+EndFunction
 
 
 ; This checks the body part for a node. I mentioned in an earlier comment that if it's the only node, it won't find it. 
@@ -337,12 +568,33 @@ Function PartCheck(Bool female, ArmorAddon bodypart, String node, TextureSet tex
 	EndIf
 EndFunction
 
+
+Function SetTailType()
+	; empty currently.
+EndFunction
+
 ;---------------------------------------------------------------------------------------------------------------------
 ; Debugging and log functions. 
 
 
+; This pretty much just lists the headparts of the passed in actor base, (Player Base anywhere in this script).
+Function HeadPartDebug(ActorBase AB)
+	int i = 0
+	int headparts = AB.GetNumHeadParts()
+	HeadPart hp
+
+	While(i < headparts)
+		hp = AB.GetNthHeadPart(i)
+		Debug.Trace("Headpart #" + i + " : " + hp.GetName())
+
+		i += 1
+	EndWhile
+	Debug.Trace("          ")
+EndFunction
+
+
 ; This outputs to the Papyrus log file the passed in string with a "pre-pend" I think it's called.
-Function Log(String s) Global
+Function Log(String s)
 	Debug.Trace("(Matera Reborn) |  " + s)
 EndFunction
 
@@ -353,11 +605,17 @@ EndFunction
 
 
 ;---------------------------------------------------------------------------------------------------------------------
-; Getters and Setters. Should be easy to see what these little functions do.
-
-
-bool Function GetIsMale() Global; If it's true, they're male, if not, female. Pretty simple. 
+; Getters and Setters.
+bool Function GetIsMale(); If it's true, they're male, if not, female. Pretty simple. 
 	return IsMale
+EndFunction
+
+bool Function GetIsFirstRun()
+	return FirstRun
+EndFunction
+
+bool Function GetIsProcessing()
+	return processing
 EndFunction
 
 int Function GetTailType()
@@ -368,48 +626,48 @@ string Function GetFemaleBodyNode()
 	return FemaleBodyNode
 EndFunction
 
+Actor Function GetPlayerRef()
+	return PlayerRef
+EndFunction
 
-TextureSet Function GetFemaleBodyTex() Global
-	return Textures[0]
+Armor Function GetMateraBody()
+	return MateraBody
+EndFunction
+
+; TextureSets
+TextureSet Function GetFemaleBodyTex()
+	return MateraTextures[0]
 EndFunction 
 
-TextureSet Function GetFemaleHandsTex() Global
-	return Textures[1]
+TextureSet Function GetFemaleHandsTex()
+	return MateraTextures[1]
 EndFunction
 
-TextureSet Function GetMaleBodyTex() Global
-	return Textures[2]
+TextureSet Function GetMaleBodyTex()
+	return MateraTextures[2]
 EndFunction
 
-TextureSet Function GetMaleHandsTex() Global
-	return Textures[3]
+TextureSet Function GetMaleHandsTex()
+	return MateraTextures[3]
 EndFunction
 
-TextureSet Function GetTailTex() Global
-	return Textures[4]
+TextureSet Function GetTailTex()
+	return MateraTextures[4]
 EndFunction
 
-TextureSet Function GetEarsTex() Global
-	return Textures[5]
-EndFunction
-
-
-ArmorAddon Function GetMateraTail() Global
-	return BodyParts[0]
+;Armor Addons
+ArmorAddon Function GetMateraTail()
+	return MateraParts[0]
 EndFunction 
 
-ArmorAddon Function GetMateraTorso() Global
-	return BodyParts[1]
+ArmorAddon Function GetMateraTorso()
+	return MateraParts[1]
 EndFunction
 
-ArmorAddon Function GetMateraHands() Global
-	return BodyParts[2]
+ArmorAddon Function GetMateraHands()
+	return MateraParts[2]
 EndFunction
 
-ArmorAddon Function GetMateraFeet() Global
-	return BodyParts[3]
-EndFunction
-
-ArmorAddon Function GetMateraEars() Global
-	return BodyParts[4]
+ArmorAddon Function GetMateraFeet()
+	return MateraParts[3]
 EndFunction
