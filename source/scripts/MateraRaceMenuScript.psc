@@ -10,13 +10,13 @@ import NiOverride
 ;	- 
 
 ; New things to add/ or to change:
-;	- Multiple tails? (Beta, HDT Beta, Original, Original HDT, Inari[maybe, if retexture is possible], Magic, Magic HDT)
+;	- Multiple tail types*.
 ;	- UNP body support once CBBE is complete. That's not going to be fun. (for the naked body parts, this is functional, but for armoured, it is not)
 ;	- Male body support. This will be even worse. 
 
+; Tail types: Beta Matera (Non HDT & HDT), Inari HDT (If a retexture is possible), Original Matera (Non HDT & HDT), Fox Tail (Non HDT & HDT)
 
 ;/
-
 
 What I want to do is replace the headparts with an armor addon, and just swap that model path and textureset. 
 The hard part is finding the right biped slot for these ears.
@@ -31,6 +31,8 @@ String Property CATEGORY_KEY = "racemenu_matera" AutoReadOnly
 Actor Property PlayerRef Auto
 ActorBase PB ; PlayerBase, but since it's "defined elsewhere", I have to abbreviate it.
 Armor Property MateraBody Auto
+
+MateraColourChangeScript Property mccs auto hidden
 
 Race Property MateraRace Auto
 Race Property MateraVampireRace Auto
@@ -85,14 +87,12 @@ Int EarsPosition = 1 ; Default.
 Int DefaultPos = 1 ; Default
 Int BodyType = 0 ; Default
 
-GlobalVariable Property BodyColorGlobal Auto
-
 ; There will be a light plugin that sets this value, and the user is asked during installation. 0 = Base game, 1 = CBBE, 2 = 3BBB, 3 = UNP, 4 = UUNP.
 ; I cannot use plugin index checking, as while at least CBBE and 3BBB have plugins, they're both light plugins, and I haven't figured out how to check for those, if it's even possible.
 ; I think I can only use light plugin checking in the FOMOD mod installer.
 GlobalVariable Property BodyTypeGlobal Auto
 
-Bool IsMale = true ; Because the player character is usually male by default, unless they have Skyrim Unbound's "Female by Default" installed.
+Bool IsMale = true ; Because the player character is usually male by default, unless they have Skyrim Unbound's "Female by Default" installed, or some other mod that changes this.
 Bool IsMatera = false
 Bool FirstRun = true
 Bool processing = false
@@ -105,6 +105,7 @@ String FemaleBodyNode ; This is what the BodyType global variable determines.
 ; Runs when the script initialises for the very first time.
 Event OnInit()
 	Parent.OnInit()
+
 	Version = RM_MATERA_VERSION
 	InitialiseValues()
 	CheckSex()
@@ -172,7 +173,6 @@ Event OnSliderChanged(string callback, float value)
 	ElseIf(callback == "matera_body_colour")
 		If(value <= 29.0)
 			MateraBodyColour = value
-			BodyColorGlobal.SetValue(value)
 			FindColour(value)
 		EndIf
 
@@ -189,6 +189,16 @@ EndEvent
 ; Variable and property initialisation functions. They pretty much do what they say.
 
 Function InitialiseValues()
+
+	Form ColourChange = Game.GetFormFromFile(0x, "MateraReborn_RaceMenu.esp") ; A17
+	
+    If(ColourChange)
+        mccs = ColourChange as MateraColourChangeScript ; This actually works!!
+    Else
+        Log("Unable to get form from file.")
+    EndIf
+
+
 	MateraTextures = New TextureSet[6] ; 0 = Female Body, 1 = Female Hands, 2 = Male Body, 3 = Male Hands, 4 = Tail, 5 = Ears
 	MateraParts = new ArmorAddon[5] ; 0 = Tail, 1 = Torso, 2 = Hands, 3 = Feet, 4 = Ears. I'm unsure if the last one will be used, but I'm putting it there in case I do figure it out.
 

@@ -1,8 +1,7 @@
 Scriptname MateraColourChangeScript extends ReferenceAlias
 
 import NiOverride
-; There's a lot of repeated code in here. Blame the game for being a stupid piece of shit and not recognising the goddamn script properties.
-; I had hoped to simply reference it, and just use the below "mrms.FunctionName()", but apparently the game is too damn stupid to realize this is what I'm telling it to do.
+
 Actor Property PlayerRef Auto
 MateraRaceMenuScript Property mrms auto hidden  ;Abbreviation of the script name, Matera Race Menu Script
 Armor Property MateraBody Auto
@@ -19,7 +18,7 @@ Event OnInit()
     Form RaceMenuFunctionality = Game.GetFormFromFile(0x81E, "MateraReborn_RaceMenu.esp")
     IsMale = mrms.GetIsMale()
     If(RaceMenuFunctionality)
-        mrms = RaceMenuFunctionality as MateraRaceMenuScript
+        mrms = RaceMenuFunctionality as MateraRaceMenuScript ; This actually works!!
     Else
         Log("Unable to get form from file.")
     EndIf
@@ -92,7 +91,6 @@ Event OnObjectEquipped(Form BaseObject, ObjectReference Ref)
         EndIf
     EndIf
 EndEvent
-
 
 
 ; This should actually work for both males and females.
