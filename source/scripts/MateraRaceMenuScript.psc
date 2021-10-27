@@ -57,6 +57,8 @@ FormList Property MaleBodyColourList Auto
 FormList Property MaleHandsColourList Auto
 FormList Property TailColourList Auto
 
+FormList Property MateraTailList Auto
+
 
 ; I decided to make these arrays. While it does hurt code readability, in theory, arrays are a singluar contiguous block of meory or (presumably) save space.
 ; This would (also theoretically) enable slightly faster access times due to it being a single continuous block and not being separate, scattered variables.
@@ -99,6 +101,8 @@ Bool processing = false
 
 String FemaleBodyNode ; This is what the BodyType global variable determines.
 
+
+; Tail Formlist: 0 = Beta, 1 = Original, 2 = Fox, 3 = Fox Five
 ;---------------------------------------------------------------------------------------------------------------------
 ; Events.
 
@@ -158,7 +162,7 @@ EndEvent
 Event OnSliderRequest(Actor player, ActorBase playerBase, Race actorRace, bool isFemale)
 	AddSliderEx("Fur Colour", CATEGORY_KEY, "matera_body_colour", 0.0, 29.0, 1.0, MateraBodyColour)
 	AddSliderEx("Ear Style", CATEGORY_KEY, "matera_ear_style", 0.0, 7.0, 1.0, MateraEar)
-	AddSliderEx("Tail Type", CATEGORY_KEY, "matera_tail_type", 0.0, 1.0, 1.0, MateraTailType) 
+	AddSliderEx("Tail Type", CATEGORY_KEY, "matera_tail_type", 0.0, 3.0, 1.0, MateraTailType) 
 EndEvent
 
 
@@ -177,8 +181,9 @@ Event OnSliderChanged(string callback, float value)
 		EndIf
 
 	ElseIf(callback == "matera_tail_type")
-		If(value <= 1.0)
+		If(value <= 3.0)
 			MateraTailType = value
+			TailType = value as Int
 			SetTailType()
 		Endif
 	EndIf
@@ -190,10 +195,10 @@ EndEvent
 
 Function InitialiseValues()
 
-	Form ColourChange = Game.GetFormFromFile(0x, "MateraReborn_RaceMenu.esp") ; A17
+	Form ColourChange = Game.GetFormFromFile(0xA17, "MateraReborn_RaceMenu.esp")
 	
     If(ColourChange)
-        mccs = ColourChange as MateraColourChangeScript ; This actually works!!
+     ;   mccs = ColourChange as MateraColourChangeScript
     Else
         Log("Unable to get form from file.")
     EndIf
@@ -213,7 +218,7 @@ Function InitialiseValues()
 	MateraFemaleHead = MiscMateraHeadPartsList.GetAt(2) as HeadPart
 	MateraMaleHead = MiscMateraHeadPartsList.GetAt(3) as HeadPart
 	
-	If(PlayerRef == None)
+	If(PlayerRef == None) ; Null check. It can happen sometimes when Papyrus loses its mind.
 		PlayerRef = Game.GetPlayer()
 	EndIf
 
@@ -257,7 +262,7 @@ Function CheckBodyType()
 	BodyType = BodyTypeGlobal.GetValueInt()
 
 	If(BodyType == 0) ; Default value. Could have been either the base game (ew) or what I'm using it as. No option was selected.
-		Debug.MessageBox("No body type was selected during installation. Please reinstall, otherwise this will not work.")
+		Debug.MessageBox("No body type was selected during installation. Please reinstall Matera Reborn, otherwise this will not work.")
 
 	ElseIf(BodyType == 1) ; These names kind of explain themselves.
 		 FemaleBodyNode = "CBBE"
@@ -268,7 +273,7 @@ Function CheckBodyType()
 	ElseIf(BodyType == 3) 
 		 FemaleBodyNode = "UNP"
 
-	ElseIf(BodyType == 4) ; BHUNP / UUNP Next Generation
+	ElseIf(BodyType == 4) ; Except for this one. This is BHUNP / UUNP Next Generation.
 		 FemaleBodyNode = "BaseShape" ; What is this name even?
 	Else
 		Log("Somehow, the body type is not valid.")
@@ -432,7 +437,7 @@ EndFunction
 
 
 ; I don't have a better name for this. This is called when, for whatever reason, the current slot that the ears would go into is occupied the head.
-; If not handled, this causes the head to literally be overwritten, leaving a floating pair of eyes with hair.
+; If not handled, this causes the head to literally be overwritten, leaving a floating pair of eyes with hair. Not even the mouth is there.
 Function WTFWhyIsThisHappening(ActorBase AB, HeadPart ear) 
 	int i = 0
 	int headparts = AB.GetNumHeadParts()
@@ -513,10 +518,6 @@ Function SetTailColour()
 EndFunction
 
 
-
-
-
-
 ;---------------------------------------------------------------------------------------------------------------------
 ; "Utility" Functions.
 
@@ -580,7 +581,23 @@ EndFunction
 
 
 Function SetTailType()
+	ArmorAddon NewTail = MateraTailList.GetAt(TailType) as ArmorAddon
+
+	Debug.Trace("Matera Tail Model Path: " + MateraParts[0].GetModelPath(false, !IsMale))
+	Debug.Trace("New Tail Model Path: " + NewTail.GetModelPath(false, !IsMale))
+
+	MateraParts[0].SetModelPath(NewTail.GetModelPath(false, !IsMale), false, !IsMale)
+	Debug.Trace("Matera Tail Model Path Changed: " + MateraParts[0].GetModelPath(false, !IsMale))
+
+
 	; empty currently.
+	;I will probably have a formlist of armor addons with one of each tail in it.
+	; Then, I'll get the model path of the selected tail, and set the model path of "MateraTail", or MateraParts[0] model path to the new tail.
+	; Then, update the tail type, and set the colour of the new tail. 
+	; Finally, apply the updates.
+	; I think I should try  this method first instead of investigating the ears jut to make sure this will even work in the first place.
+	; As, this is how I want to deal with the ears, once I can figure out a proper biped slot for them.
+	PlayerRef.QueueNiNodeUpdate()
 EndFunction
 
 ;---------------------------------------------------------------------------------------------------------------------
@@ -644,7 +661,7 @@ Armor Function GetMateraBody()
 	return MateraBody
 EndFunction
 
-; TextureSets
+; TextureSet Getters
 TextureSet Function GetFemaleBodyTex()
 	return MateraTextures[0]
 EndFunction 
@@ -665,7 +682,7 @@ TextureSet Function GetTailTex()
 	return MateraTextures[4]
 EndFunction
 
-;Armor Addons
+;Armor Addon Getters
 ArmorAddon Function GetMateraTail()
 	return MateraParts[0]
 EndFunction 

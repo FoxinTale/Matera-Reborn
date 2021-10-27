@@ -6,6 +6,7 @@ Scriptname MateraRaceMenuObjects
 ; GAZE UPON MY PAIN!
 
 ; This was an initial attempt before I figured out I could get things from formlists.
+; This is also totally incorrect. They should not be arrays.
 TextureSet[] Property FemaleBody_Albino Auto
 TextureSet[] Property FemaleHands_Albino Auto
 TextureSet[] Property MaleBody_Albino Auto

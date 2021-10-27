@@ -16,7 +16,7 @@ Bool IsMatera = false
 
 Event OnInit()
     Form RaceMenuFunctionality = Game.GetFormFromFile(0x81E, "MateraReborn_RaceMenu.esp")
-    IsMale = mrms.GetIsMale()
+
     If(RaceMenuFunctionality)
         mrms = RaceMenuFunctionality as MateraRaceMenuScript ; This actually works!!
     Else
@@ -164,6 +164,8 @@ EndFunction
 Function CheckValues()
     RaceCheck()
 
+    IsMale = mrms.GetIsMale()
+    
     If(PlayerRef == None)
         PlayerRef = Game.GetPlayer()
     EndIf
