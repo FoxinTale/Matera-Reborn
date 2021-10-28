@@ -250,7 +250,7 @@ EndFunction
 ; Checking functions. 
 
 Function RaceCheck()
-	If(Game.GetPlayer().GetRace() == MateraRace || Game.GetPlayer().GetRace() == MateraVampireRace)
+	If(Game.GetPlayer().GetRace() == MateraRace || Game.GetPlayer().GetRace() == MateraVampireRace) ; Done this way because for whatever reason using PlayerRef woesn't work.
 		IsMatera = true
 	Else
 		IsMatera = false
@@ -283,6 +283,7 @@ Function CheckBodyType()
 EndFunction
 
 
+; Pretty self-explanatory.
 Function CheckSex()
 	If(PB.GetSex() == 0)
 		IsMale = true
