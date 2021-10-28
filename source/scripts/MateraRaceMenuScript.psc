@@ -1,13 +1,10 @@
 Scriptname MateraRaceMenuScript extends RaceMenuBase
 
+; Check out this fellow's site if you wish to use NiOverride. You'll thank me later.
+; https://geek-of-all-trades.neocities.org/programming/skyrim/nioverride-textures-01-beginners.html
+; NiOverride has very little documentation as to how to use it. This is why I have such heavily commented scripts here.
+; That, and to help both others wondering how I pulled this off, and my future self looking back at this.
 import NiOverride
-
-; To fix (what is known to not work):
-; Currently, nothing majorly broken.
-
-
-;To test:
-;	- 
 
 ; New things to add/ or to change:
 ;	- Multiple tail types*.
@@ -22,6 +19,10 @@ What I want to do is replace the headparts with an armor addon, and just swap th
 The hard part is finding the right biped slot for these ears.
 I would love to do away with all this head part nonsense. 
 
+Though, I've tried just about every biped slot I can think of for the base ears. Nothing. I think they will have to be forced to have one. Somehow.
+I have no idea if it is possible, and if it is I have no idea how to do so. This part isn't a comment, it's a cry for help.
+I *really* hated the head part nonsense and want to get rid of it, but can't.
+
 I also wish to investigate the usage of NiOverride's "Skin" functions. 
 /;
 Int Property RM_MATERA_VERSION = 1 AutoReadOnly
@@ -32,13 +33,12 @@ Actor Property PlayerRef Auto
 ActorBase PB ; PlayerBase, but since it's "defined elsewhere", I have to abbreviate it.
 Armor Property MateraBody Auto
 
-MateraColourChangeScript Property mccs auto hidden
-
 Race Property MateraRace Auto
 Race Property MateraVampireRace Auto
 
 ; I had to make a lot of HeadParts (Thank you SSE Edit scripts for saving me about 3 hours) and put them into FormLists, as they're head parts. Not armors or armor addons, and therefore I was unable to easily
 ; change textures on them. That, and at the time I did it this way, I had already spent a solid 5 days on trying to swap the ears out and changing their texturesets alone...This way works reliably. 
+; doing away with the headparts means I can get rid of these lists. And the 30 headparts contained within each list.
 FormList Property ElinEarsList Auto
 FormList Property ElvenEarsList Auto
 FormList Property FoxEarsList Auto
@@ -50,21 +50,32 @@ FormList Property SmallEarsList Auto
 FormList Property SmallTuftsEarsList Auto
 FormList Property SpikyEarsList Auto
 FormList Property MiscMateraHeadPartsList Auto
+;------------
+FormList Property MateraTailList Auto ; The list of tails. 0 = Beta, 1 = Original, 2 = Fox, 3 = Fox Five Tail
 
+;/
+The texture formlists. I'm basically treating the formlists as arrays. I like it this way because I can add and remove things at will.
+Here's how I'm using the formlists. The number is the position  in the lists. This applies to all of them:
+
+	0 = Albino, 1 = Black, 2 = Black Tip, 3 = Concept, 4 = Cotton Candy, 5 = Cotton Candy Black, 6 = Cotton Candy Blue, 7 = Cotton Candy White,
+	8 = Dark Brown, 9 = Default, 10 = Default Tip, 11 = Everlast Evil, 12 = Fennec, 13 = Georgian Black, 14 = Georgian White, 15 = Green Tip, 16 = Holo 
+	17 = Ice, 18 = Krystal, 19 = Krystal Tip, 20 = Light Brown, 21 = Maned Wolf Mystic, 22 = Mixed, 23 = Pink Tip, 24 = Pumpkin, 25 = Silver 
+	26 = Silver Light, 27 = Slushie, 28 = White, 29 = White Tip.
+/;
 FormList Property FemaleBodyColour_List Auto
 FormList Property FemaleHandsColour_List Auto
 FormList Property MaleBodyColourList Auto
 FormList Property MaleHandsColourList Auto
-FormList Property TailColourList Auto
+FormList Property BetaTailColourList Auto
+FormList Property OriginalTailColourList Auto
 
-FormList Property MateraTailList Auto
-
-
-; I decided to make these arrays. While it does hurt code readability, in theory, arrays are a singluar contiguous block of meory or (presumably) save space.
+; I decided to make these arrays. While it does hurt code readability, in theory, arrays are a singluar contiguous block of memory or (presumably) save space.
 ; This would (also theoretically) enable slightly faster access times due to it being a single continuous block and not being separate, scattered variables.
+; This is, of course assuming Papyrus and Skyrim's internal code behaves like a sensible, competent little thing.  
 TextureSet[] MateraTextures
 ArmorAddon[] MateraParts
 
+; Begone.
 HeadPart DefaultEars
 HeadPart CurrentEars
 HeadPart NewEars
@@ -73,7 +84,7 @@ HeadPart PrevEars
 HeadPart MateraFemaleHead
 HeadPart MateraMaleHead
 
-; 0 = Ears, 1 = Colour, 2 = Body Colour, 3 = Ears Colour, 4 = Tail colour, 5 = Tail type. Ears and tail colour is unused currently. 
+; Considering turning these into arrays as well.
 Float MateraEar = 0.0
 Float MateraColour = 10.0
 Float MateraBodyColour = 10.0
@@ -196,15 +207,6 @@ EndEvent
 
 Function InitialiseValues()
 
-	Form ColourChange = Game.GetFormFromFile(0xA17, "MateraReborn_RaceMenu.esp")
-	
-    If(ColourChange)
-     ;   mccs = ColourChange as MateraColourChangeScript
-    Else
-        Log("Unable to get form from file.")
-    EndIf
-
-
 	MateraTextures = New TextureSet[6] ; 0 = Female Body, 1 = Female Hands, 2 = Male Body, 3 = Male Hands, 4 = Tail, 5 = Ears
 	MateraParts = new ArmorAddon[5] ; 0 = Tail, 1 = Torso, 2 = Hands, 3 = Feet, 4 = Ears. I'm unsure if the last one will be used, but I'm putting it there in case I do figure it out.
 
@@ -212,8 +214,9 @@ Function InitialiseValues()
 	MateraTextures[1] = FemaleHandsColour_List.GetAt(DefaultColour) as TextureSet
 	MateraTextures[2] = MaleBodyColourList.GetAt(DefaultColour) as TextureSet
 	MateraTextures[3] = MaleHandscolourList.GetAt(DefaultColour) as TextureSet
-	MateraTextures[4] = TailColourList.GetAt(DefaultColour) as TextureSet
+	MateraTextures[4] = BetaTailColourList.GetAt(DefaultColour) as TextureSet
 	
+	; Be gone.
 	BlankEars = MiscMateraHeadPartsList.GetAt(0) as HeadPart
 	DefaultEars = MiscMateraHeadPartsList.GetAt(1) as HeadPart
 	MateraFemaleHead = MiscMateraHeadPartsList.GetAt(2) as HeadPart
@@ -229,12 +232,12 @@ Function InitialiseValues()
 	InitialiseBodyParts()
 EndFunction
 
-; 0 = Feet, 1 = Torso, 2 = Hands
+
 ; One of the more unusual functions I've named, but it does exactly what it says. 
 Function InitialiseBodyParts() 
-	MateraParts[0] = MateraBody.GetNthArmorAddon(0)
-	MateraParts[1] = MateraBody.GetNthArmorAddon(1)
-	MateraParts[2] = MateraBody.GetNthArmorAddon(2)
+	MateraParts[0] = MateraBody.GetNthArmorAddon(0) ; Feet
+	MateraParts[1] = MateraBody.GetNthArmorAddon(1) ; Torso
+	MateraParts[2] = MateraBody.GetNthArmorAddon(2) ; Hands
 
 	MateraParts[0].RegisterForNiNodeUpdate()
 	MateraParts[1].RegisterForNiNodeUpdate()
@@ -287,6 +290,8 @@ Function CheckSex()
 		IsMale = false
 	EndIf
 EndFunction
+
+
 ;---------------------------------------------------------------------------------------------------------------------
 ; The formlist handling
 
@@ -303,7 +308,7 @@ Function FindColour(Float ColourOption)
 		MateraTextures[1] = FemaleHandsColour_List.GetAt(ColourChoice) as TextureSet
 		MateraTextures[2] = MaleBodyColourList.GetAt(ColourChoice) as TextureSet
 		MateraTextures[3] = MaleHandscolourList.GetAt(ColourChoice) as TextureSet
-		MateraTextures[4] = TailColourList.GetAt(ColourChoice) as TextureSet
+		SetTailTexture(ColourChoice)
 	EndIf
 
 	If(IsMale)
@@ -326,7 +331,7 @@ EndFunction
 
 ;---------------------------------------------------------------------------------------------------------------------
 ; Ear section. This section handles anything relating with the ears.
-
+; *screaming that slowly devolves into cries*
 
 ; I wish switch statements existed in Papyrus. That would make thise cleaner.
 Function SetEarColour()
@@ -361,8 +366,6 @@ Function SetEarColour()
 	CurrentEars = NewEarColour
 	SetEar(NewEarColour, EarsPosition) ; Previously 1
 EndFunction
-
-
 
 
 Function SetEar(HeadPart ear, int slot)
@@ -456,8 +459,7 @@ EndFunction
 
 
 ;---------------------------------------------------------------------------------------------------------------------
-; The colour changing functions. 
-; I would have loved to offload these to the "MateraColourChangeScript", but the creation kit had a stick up its ass and wouldn't let me set the property.
+; Body colour changing 
 
 ; 0 = Female Body, 1 = Female Hands, 2 = Male Body, 3 = Male Hands, 4 = Tail, 5 = Ears
 ; 0 = Feet, 1 = Torso, 2 = Hands
@@ -502,7 +504,26 @@ Function SetMaleBodyColour()
 EndFunction
 	
 
-; I do have plans for multiple tail types.
+;---------------------------------------------------------------------------------------------------------------------
+; Tail operations.
+
+;Handles setting the tail texture depending on the currently selected tail type.
+Function SetTailTexture(Int ColourChoice)
+	If(TailType == 0)
+		MateraTextures[4] = BetaTailColourList.GetAt(ColourChoice) as TextureSet
+
+	ElseIf(TailType == 1)
+		MateraTextures[4] = OriginalTailColourList.GetAt(ColourChoice) as TextureSet
+
+	; I have to make the textures for these first.
+	;Else If(TailType == 2 || TailType == 3)
+		;MateraTextures[4] = FoxTailColourList.GetAt(ColourChoice) as TextureSet
+	Else
+		; I dunno. this shouldn't happen once all tail types are implemented.
+	EndIf
+EndFunction
+
+
 Function SetTailColour()
 	; Textures array index 4 is the tail texture.
 	Armor Tail = PlayerRef.GetEquippedArmorInSlot(40)
@@ -510,12 +531,38 @@ Function SetTailColour()
 	If(Tail)
 		If(TailType == 0)
 			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "TailM", 6, -1, MateraTextures[4], false)
+
 		ElseIf(TailType == 1)
 			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "Albino", 6, -1, MateraTextures[4], false)
+		
+		;ElseIf(TailType == 2)
+			;AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_0", 6, -1, MateraTextures[4], false)
+
+		;ElseIf(TailType == 3)
+			;AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_0", 6, -1, MateraTextures[4], false)
+			;AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_001", 6, -1, MateraTextures[4], false)
+			;AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_002", 6, -1, MateraTextures[4], false)
+			;AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_003", 6, -1, MateraTextures[4], false)
+			;AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_004", 6, -1, MateraTextures[4], false)
+		
+		Else
+			; Also should not happen once all tail types are implemented.
 		EndIf
 	Else
 		Log("No tail found.")
 	EndIf
+EndFunction
+
+
+Function SetTailType()
+	Armor CurrentTail = PlayerRef.GetEquippedArmorInSlot(40)
+	Armor NewTail = MateraTailList.GetAt(TailType) as Armor
+	PlayerRef.RemoveItem(CurrentTail, 1, true, None)
+
+	PlayerRef.AddItem(NewTail, 1, true)
+	PlayerRef.EquipItem(NewTail, true, true)
+
+	PlayerRef.QueueNiNodeUpdate()
 EndFunction
 
 
@@ -560,7 +607,7 @@ Function HeadPartCheck()
 ;			i = headparts ; Break out of the loop.
 		EndIf
 
-		If(PrevEars != None)
+		If(PrevEars)
 			If(hp.GetName() == PrevEars.GetName())
 				SetEar(BlankEars, i)
 			EndIf
@@ -580,17 +627,6 @@ Function PartCheck(Bool female, ArmorAddon bodypart, String node, TextureSet tex
 	EndIf
 EndFunction
 
-
-Function SetTailType()
-	Armor CurrentTail = PlayerRef.GetEquippedArmorInSlot(40)
-	Armor NewTail = MateraTailList.GetAt(TailType) as Armor
-	PlayerRef.RemoveItem(CurrentTail, 1, true, None)
-
-	PlayerRef.AddItem(NewTail, 1, true)
-	PlayerRef.EquipItem(NewTail, true, true)
-
-	PlayerRef.QueueNiNodeUpdate()
-EndFunction
 
 ;---------------------------------------------------------------------------------------------------------------------
 ; Debugging and log functions. 
@@ -620,11 +656,9 @@ EndFunction
 ; If I ever end up figuring out how to check the texture path on a nif model, and use that to find the right node so I can set the texture, there should be a variable
 ; that is checked. This is because someone may have custom texture paths for their body mesh that aren't where the default textures are. Doing it this way has built in handling for when I implement that.
 
-
-
-
 ;---------------------------------------------------------------------------------------------------------------------
-; Getters and Setters.
+; Getters.
+
 bool Function GetIsMale(); If it's true, they're male, if not, female. Pretty simple. 
 	return IsMale
 EndFunction
@@ -639,18 +673,6 @@ EndFunction
 
 int Function GetTailType()
 	return TailType
-EndFunction
-
-string Function GetFemaleBodyNode()
-	return FemaleBodyNode
-EndFunction
-
-Actor Function GetPlayerRef()
-	return PlayerRef
-EndFunction
-
-Armor Function GetMateraBody()
-	return MateraBody
 EndFunction
 
 ; TextureSet Getters
@@ -675,7 +697,6 @@ TextureSet Function GetTailTex()
 EndFunction
 
 ;Armor Addon Getters
-; 0 = Feet, 1 = Torso, 2 = Hands
 ArmorAddon Function GetMateraFeet()
 	return MateraParts[0]
 EndFunction

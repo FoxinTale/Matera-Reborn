@@ -759,12 +759,7 @@ EndFunction
 ;
 ; For ear styles: 0 = Elin, 1 = Elven, 2 = Lopsided, 3 = Rogue, 4 = Sideways, 5 = Small, 6 = Small Tufts, 7 = Spiky.
 ;
-; For fur colours: 
-;	0 = Albino, 1 = Black, 2 = Black Tip, 3 = Concept, 4 = Cotton Candy, 5 = Cotton Candy Black, 6 = Cotton Candy Blue, 7 = Cotton Candy White,
-;	8 = Dark Brown, 9 = Default, 10 = Default Tip, 11 = Everlast Evil, 12 = Fennec, 13 = Georgian Black, 14 = Georgian White, 15 = Green Tip, 16 = Holo
-;	17 = Ice, 18 = Krystal, 19 = Krystal Tip, 20 = Light Brown, 21 = Maned Wolf Mystic, 22 = Mixed, 23 = Pink Tip, 24 = Pumpkin, 25 = Silver
-;	26 = Silver Light, 27 = Slushie, 28 = White, 29 = White Tip.
-;
+
 ; Texture Sets: 0 (diffuse),1 (normal), 3 (subsurface), 7 (specular)
 ;--------------------------------------------------------------------------------------------------------------------------------------------------
 
