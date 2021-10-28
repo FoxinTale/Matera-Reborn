@@ -84,6 +84,7 @@ Float MateraTailType = 0.0
 Int CurrentEar = 0
 Int DefaultColour = 10
 Int CurrentColour = 10
+Int OldTailType = 0
 Int TailType = 0
 Int EarsPosition = 1 ; Default.
 Int DefaultPos = 1 ; Default
@@ -228,18 +229,16 @@ Function InitialiseValues()
 	InitialiseBodyParts()
 EndFunction
 
-; 0 = Tail, 1 = Torso, 2 = Hands, 3 = Feet, 4 = Ears
+; 0 = Feet, 1 = Torso, 2 = Hands
 ; One of the more unusual functions I've named, but it does exactly what it says. 
 Function InitialiseBodyParts() 
 	MateraParts[0] = MateraBody.GetNthArmorAddon(0)
 	MateraParts[1] = MateraBody.GetNthArmorAddon(1)
 	MateraParts[2] = MateraBody.GetNthArmorAddon(2)
-	MateraParts[3] = MateraBody.GetNthArmorAddon(3)
 
 	MateraParts[0].RegisterForNiNodeUpdate()
 	MateraParts[1].RegisterForNiNodeUpdate()
 	MateraParts[2].RegisterForNiNodeUpdate()
-	MateraParts[3].RegisterForNiNodeUpdate()
 	Log("Initialisation complete")
 EndFunction
 
@@ -461,7 +460,7 @@ EndFunction
 ; I would have loved to offload these to the "MateraColourChangeScript", but the creation kit had a stick up its ass and wouldn't let me set the property.
 
 ; 0 = Female Body, 1 = Female Hands, 2 = Male Body, 3 = Male Hands, 4 = Tail, 5 = Ears
-; 0 = Tail, 1 = Torso, 2 = Hands, 3 = Feet, 4 = Ears
+; 0 = Feet, 1 = Torso, 2 = Hands
 Function SetFemaleBodyColour()
 	processing = true
 	
@@ -473,7 +472,7 @@ Function SetFemaleBodyColour()
 		; I discovered via netimmerse debug logs that if the part passed in is just a body part, then the root node is what it is looking for.
 		; If the node I pass in is the *only* node there, it fails to find it. However, if a blank string is passed in, it has no issues finding it.
 		; This also means that the player's body is naked.
-		AddOverrideTextureSet(PlayerRef, true, MateraBody, MateraParts[1], "", 6, -1, MateraTextures[1], true) ; Nodes are the same name on CBBE, CBBE 3BBB, UNP, and BHUNP!
+		AddOverrideTextureSet(PlayerRef, true, MateraBody, MateraParts[1], "", 6, -1, MateraTextures[0], true) ; Nodes are the same name on CBBE, CBBE 3BBB, UNP, and BHUNP!
 	EndIf
 	
 
@@ -491,7 +490,7 @@ Function SetFemaleBodyColour()
 		SearchAndSet(true, feet, "Feet", 0)
 	Else
 		; The player has (literal) cold feet because they're wearing nothing there.
-		PartCheck(true, MateraParts[3], "Feet", MateraTextures[0])
+		PartCheck(true, MateraParts[0], "Feet", MateraTextures[0])
 	EndIf
 
 	processing = false
@@ -502,18 +501,20 @@ Function SetMaleBodyColour()
 	; Not implemented yet. Awating to make female body work first. CBBE mainly works, UNP is totally untested.
 EndFunction
 	
+
 ; I do have plans for multiple tail types.
 Function SetTailColour()
 	; Textures array index 4 is the tail texture.
+	Armor Tail = PlayerRef.GetEquippedArmorInSlot(40)
 
-	; Beta Matera (Tail type 0) node: "TailM", Original Matera (Tail Type 1)Node: "Albino"
-	; Maybe other tail types in the future. If I can figure out how to have swappable tails, that would be fantastic.
-
-	If(TailType == 0)		
-        AddOverrideTextureSet(PlayerRef, true, MateraBody, MateraParts[3], "TailM", 6, -1, MateraTextures[4], true)
-		
-	ElseIf(TailType == 1)
-		AddOverrideTextureSet(PlayerRef, true, MateraBody, MateraParts[3], "Albino", 6, -1, MateraTextures[4], true)
+	If(Tail)
+		If(TailType == 0)
+			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "TailM", 6, -1, MateraTextures[4], false)
+		ElseIf(TailType == 1)
+			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "Albino", 6, -1, MateraTextures[4], false)
+		EndIf
+	Else
+		Log("No tail found.")
 	EndIf
 EndFunction
 
@@ -581,22 +582,13 @@ EndFunction
 
 
 Function SetTailType()
-	ArmorAddon NewTail = MateraTailList.GetAt(TailType) as ArmorAddon
+	Armor CurrentTail = PlayerRef.GetEquippedArmorInSlot(40)
+	Armor NewTail = MateraTailList.GetAt(TailType) as Armor
+	PlayerRef.RemoveItem(CurrentTail, 1, true, None)
 
-	Debug.Trace("Matera Tail Model Path: " + MateraParts[0].GetModelPath(false, !IsMale))
-	Debug.Trace("New Tail Model Path: " + NewTail.GetModelPath(false, !IsMale))
+	PlayerRef.AddItem(NewTail, 1, true)
+	PlayerRef.EquipItem(NewTail, true, true)
 
-	MateraParts[0].SetModelPath(NewTail.GetModelPath(false, !IsMale), false, !IsMale)
-	Debug.Trace("Matera Tail Model Path Changed: " + MateraParts[0].GetModelPath(false, !IsMale))
-
-
-	; empty currently.
-	;I will probably have a formlist of armor addons with one of each tail in it.
-	; Then, I'll get the model path of the selected tail, and set the model path of "MateraTail", or MateraParts[0] model path to the new tail.
-	; Then, update the tail type, and set the colour of the new tail. 
-	; Finally, apply the updates.
-	; I think I should try  this method first instead of investigating the ears jut to make sure this will even work in the first place.
-	; As, this is how I want to deal with the ears, once I can figure out a proper biped slot for them.
 	PlayerRef.QueueNiNodeUpdate()
 EndFunction
 
@@ -683,9 +675,10 @@ TextureSet Function GetTailTex()
 EndFunction
 
 ;Armor Addon Getters
-ArmorAddon Function GetMateraTail()
+; 0 = Feet, 1 = Torso, 2 = Hands
+ArmorAddon Function GetMateraFeet()
 	return MateraParts[0]
-EndFunction 
+EndFunction
 
 ArmorAddon Function GetMateraTorso()
 	return MateraParts[1]
@@ -695,6 +688,3 @@ ArmorAddon Function GetMateraHands()
 	return MateraParts[2]
 EndFunction
 
-ArmorAddon Function GetMateraFeet()
-	return MateraParts[3]
-EndFunction

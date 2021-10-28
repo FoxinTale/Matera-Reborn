@@ -9,6 +9,7 @@ Armor Property MateraBody Auto
 Race Property MateraRace Auto
 Race Property MateraVampireRace Auto
 
+Formlist Property MateraTailList Auto
 Int TailType = 0
 
 Bool IsMale = true ; I decided on leaving this in instead of using the "mrms.GetIsMale()" repeatedly to hopefully have things be a little bit faster.
@@ -44,7 +45,7 @@ Event OnPlayerLoadGame()
             Utility.Wait(0.1)
         EndWhile
 
-		mrms.SetTailColour()
+		;mrms.SetTailColour()
 		PlayerRef.QueueNiNodeUpdate()
 	EndIf
 EndEvent
@@ -57,7 +58,7 @@ Event OnMenuClose(String menuname)
     EndIf
 EndEvent
 
-
+; 0 = Feet, 1 = Torso, 2 = Hands
 Event OnObjectEquipped(Form BaseObject, ObjectReference Ref)
     If(IsMatera)
         If(BaseObject as Armor)
@@ -72,14 +73,14 @@ Event OnObjectEquipped(Form BaseObject, ObjectReference Ref)
 
             ElseIf(arm.GetSlotMask() == 8)
                 If(IsMale)
-                   mrms.SearchAndSet(false, arm, "Hands", 3) ; I have no idea if this is the correct node for male hands. I don't think it is.
+                   mrms.SearchAndSet(false, arm, "Hands", 2) ; I have no idea if this is the correct node for male hands. I don't think it is.
                 Else
-                    mrms.SearchAndSet(true, arm, "Hands", 1)
+                    mrms.SearchAndSet(true, arm, "Hands", 2)
                 EndIf
 
             ElseIf(arm.GetSlotMask() == 80) ; Slot 128 temporarily removed.
                 If(IsMale)
-                    mrms.SearchAndSet(false, arm, "Feet", 2)
+                    mrms.SearchAndSet(false, arm, "Feet", 0)
                 Else
                    mrms.SearchAndSet(true, arm, "Feet", 0)
                 EndIf
@@ -138,6 +139,15 @@ EndEvent
 
 Event OnRaceSwitchComplete()
     RaceCheck()
+
+    If(IsMatera)
+        If(mrms.GetIsFirstRun())
+            Armor Tail = MateraTailList.GetAt(mrms.GetTailType()) as Armor
+            PlayerRef.Additem(Tail, 1, true)
+            PlayerRef.EquipItem(Tail, true, true)
+            PlayerRef.QueueNiNodeUpdate()
+        EndIf
+    EndIf
 EndEvent
 
 
