@@ -1,0 +1,1 @@
+Continuing a rewrite by toally changing how the ears are done. I didn't like the headpart nonsense, and it can now be removed! 
