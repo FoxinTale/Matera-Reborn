@@ -755,10 +755,7 @@ EndFunction
 ; DOCUMENTATION
 ;
 ; Ideally, I would have used a similar data structure to a hashmap or 2D array, but neither of those two exist in Papyryus so I'm doing it in documentation.
-;	This is added both for my own sanity and anyone else going through here. This was a pain in my ass to figure out.
-;
-; For ear styles: 0 = Elin, 1 = Elven, 2 = Lopsided, 3 = Rogue, 4 = Sideways, 5 = Small, 6 = Small Tufts, 7 = Spiky.
-;
+;	This is added both for my own sanity and anyone else going through here. This was a pain in my ass to figure out
 
 ; Texture Sets: 0 (diffuse),1 (normal), 3 (subsurface), 7 (specular)
 ;--------------------------------------------------------------------------------------------------------------------------------------------------

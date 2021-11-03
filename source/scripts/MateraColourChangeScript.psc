@@ -10,7 +10,7 @@ Race Property MateraRace Auto
 Race Property MateraVampireRace Auto
 
 Formlist Property MateraTailList Auto
-Int TailType = 0
+FormList Property MateraEarsList Auto
 
 Bool IsMale = true ; I decided on leaving this in instead of using the "mrms.GetIsMale()" repeatedly to hopefully have things be a little bit faster.
 Bool IsMatera = false
@@ -40,12 +40,6 @@ Event OnPlayerLoadGame()
 		Else
 			mrms.SetFemaleBodyColour()
 		EndIf
-
-        While(mrms.GetIsProcessing())
-            Utility.Wait(0.1)
-        EndWhile
-
-		;mrms.SetTailColour()
 		PlayerRef.QueueNiNodeUpdate()
 	EndIf
 EndEvent
@@ -143,8 +137,12 @@ Event OnRaceSwitchComplete()
     If(IsMatera)
         If(mrms.GetIsFirstRun())
             Armor Tail = MateraTailList.GetAt(mrms.GetTailType()) as Armor
+            Armor Ears = MateraEarsList.GetAt(mrms.GetEarsType()) as Armor
+
             PlayerRef.Additem(Tail, 1, true)
+            PlayerRef.AddItem(Ears, 1, true)
             PlayerRef.EquipItem(Tail, true, true)
+            PlayerRef.EquipItem(Ears, true, true)
             PlayerRef.QueueNiNodeUpdate()
         EndIf
     EndIf
@@ -181,22 +179,6 @@ Function CheckValues()
     EndIf
 EndFunction
 
-
-;--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-; Repeated code from Matera Race Menu Script, because the damn thing won't let me use shared scripts for some damn reason.
-; It's literally copied from the Matera Race Menu Script. Comments and all. If someone can get the two scripts to talk, you can remove this entire segment.
-
-
-
-; This checks the body part for a node. I mentioned in an earlier comment that if it's the only node, it won't find it. 
-; However, there are mods that add nodes to the hands and/or feet in the shape of nails or claws. This handles that scenario.
-Function PartCheck(Bool female, ArmorAddon bodypart, String node, TextureSet tex)
-	If(HasArmorAddonNode(PlayerRef, false, MateraBody, bodypart, node, true))
-		AddOverrideTextureSet(PlayerRef, female, MateraBody, bodypart, node, 6, -1, tex, true)
-	Else
-		AddOverrideTextureSet(PlayerRef, female, MateraBody, bodypart, "" , 6, -1, tex, true)
-	EndIf
-EndFunction
 
 ;--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ;--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
