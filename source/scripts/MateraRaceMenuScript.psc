@@ -4,6 +4,7 @@ Scriptname MateraRaceMenuScript extends RaceMenuBase
 ; https://geek-of-all-trades.neocities.org/programming/skyrim/nioverride-textures-01-beginners.html
 
 ; NiOverride has very little documentation as to how to use it. This is why I have such heavily commented scripts here.
+; The only documentation I found is in the comments in NiOverride's script itself. 
 ; Did I need to document all this as well as I did? No. But I did. Hopefully it helps any poor sods going through the code in the future.
 
 import NiOverride
@@ -12,6 +13,8 @@ import NiOverride
 ;	- Multiple tail types*.
 ;	- UNP body support once CBBE is complete. That's not going to be fun. (for the naked body parts, this is functional, but for armoured, it is not)
 ;	- Male body support. This will be even worse. 
+;   - Check if HDTEquippable tails for SE is installed, if so, do additional, fun magic stuff. 
+;	- Maybe remove HDT-ness from the tails as an option. Why one would not want swooshy tails, who knows. But it should be an option.
 
 ; Tail types: Beta Matera (Non HDT & HDT), Inari HDT (If a retexture is possible), Original Matera (Non HDT & HDT), Fox Tail (Non HDT & HDT)
 ; Investigate NiOverride's "Skin functions".
@@ -63,19 +66,20 @@ FormList Property MateraEarsColourList Auto
 FormList Property FoxEarsColourList Auto
 
 
-; I decided to make these arrays. While it does hurt code readability, in theory, arrays are a singluar contiguous block of memory or (presumably) save space.
+; I decided to make these arrays. While it does hurt code readability, in theory, arrays are a singluar contiguous block of memory or (presumably) save space storage.
 ; This would (also theoretically) enable slightly faster access times due to it being a single continuous block and not being separate, scattered variables.
 ; This is, of course assuming Papyrus and Skyrim's internal code behaves like a sensible, competent little thing.  
+; Looking at the save file with something like Resaver, we can see that arrays actually have their own section, and are indeed stored as a continuous block.
+; Good job Bethesda, you did something right!
 TextureSet[] MateraTextures
 ArmorAddon[] MateraParts
-; Int[] ColoursAndTypes
 
 ; Considering turning these into arrays as well.
 Float MateraColour = 10.0
 Float MateraTailType = 0.0
 Float MateraEarType = 0.0
 
-
+; This as well. 
 Int DefaultColour = 10
 Int CurrentColour = 10
 Int TailType = 0
@@ -253,6 +257,11 @@ Function CheckSex()
 EndFunction
 
 
+Function PluginCheck()
+
+
+EndFunction
+
 ;---------------------------------------------------------------------------------------------------------------------
 ; The formlist handling
 
@@ -315,7 +324,7 @@ Function SetFemaleBodyColour()
 		Armor hands = PlayerRef.GetEquippedArmorInSlot(33)
 		SearchAndSet(true, hands, "Hands", 1)
 	Else
-		; Player is wearing nothing on their hands.
+		; Player is wearing nothing on their hands. 
 		PartCheck(true, MateraParts[2], "Hands", MateraTextures[1])
 	EndIf
 	
@@ -349,7 +358,6 @@ Function SetTailTexture(Int ColourChoice)
 	ElseIf(TailType == 1)
 		MateraTextures[4] = OriginalTailColourList.GetAt(ColourChoice) as TextureSet
 
-	; I have to make the textures for these first.
 	ElseIf(TailType == 2 || TailType == 3)
 		MateraTextures[4] = FoxTailColourList.GetAt(ColourChoice) as TextureSet
 
@@ -370,15 +378,15 @@ Function SetTailColour()
 		ElseIf(TailType == 1)
 			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "Albino", 6, -1, MateraTextures[4], false)
 		
-		;ElseIf(TailType == 2)
-			;AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_0", 6, -1, MateraTextures[4], false)
+		ElseIf(TailType == 2)
+			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_0", 6, -1, MateraTextures[4], false)
 
-		;ElseIf(TailType == 3)
-			;AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_0", 6, -1, MateraTextures[4], false)
-			;AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_001", 6, -1, MateraTextures[4], false)
-			;AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_002", 6, -1, MateraTextures[4], false)
-			;AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_003", 6, -1, MateraTextures[4], false)
-			;AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_004", 6, -1, MateraTextures[4], false)
+		ElseIf(TailType == 3)
+			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_0", 6, -1, MateraTextures[4], false)
+			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_001", 6, -1, MateraTextures[4], false)
+			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_002", 6, -1, MateraTextures[4], false)
+			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_003", 6, -1, MateraTextures[4], false)
+			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_004", 6, -1, MateraTextures[4], false)
 		
 		Else
 			; Also should not happen once all tail types are implemented.
