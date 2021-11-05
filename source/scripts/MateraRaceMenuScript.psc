@@ -206,7 +206,7 @@ Function InitialiseBodyParts()
 	MateraParts[0].RegisterForNiNodeUpdate()
 	MateraParts[1].RegisterForNiNodeUpdate()
 	MateraParts[2].RegisterForNiNodeUpdate()
-	Log("Initialisation complete")
+	Log("Initialisation complete", 0)
 EndFunction
 
 
@@ -242,7 +242,7 @@ Function CheckBodyType()
 	ElseIf(BodyType == 4) ; Except for this one. This is BHUNP / UUNP Next Generation.
 		 FemaleBodyNode = "BaseShape" ; What is this name even?
 	Else
-		Log("Somehow, the body type is not valid.")
+		Log("Body type is invalid.", 1)
 	EndIf
 EndFunction
 
@@ -362,7 +362,7 @@ Function SetTailTexture(Int ColourChoice)
 		MateraTextures[4] = FoxTailColourList.GetAt(ColourChoice) as TextureSet
 
 	Else
-		; I dunno. this shouldn't happen once all tail types are implemented.
+		Log("Tail type invalid", 1)
 	EndIf
 EndFunction
 
@@ -392,7 +392,7 @@ Function SetTailColour()
 			; Also should not happen once all tail types are implemented.
 		EndIf
 	Else
-		Log("No tail found.")
+		Log("No tail found.", 1)
 	EndIf
 EndFunction
 
@@ -418,7 +418,7 @@ Function SetEarTexture(Int ColourChoice)
 			; Shouldn't really happen.
 		EndIf
 	Else
-		Log("No ears were found.")
+		Log("No ears were found.", 2)
 	EndIf
 EndFunction
 
@@ -467,7 +467,7 @@ Function SearchAndSet(bool isFemale, Armor arm, String node, int TexOption) ; Fu
 			AddOverrideTextureSet(PlayerRef, isFemale, arm, arm.GetNthArmorAddon(i), node, 6, -1, tex, true)
 			i = addoncount ; Break out of the loop once the node has been found.
 		Else
-			Log("Node " + node + " not found on armor piece " + arm.GetName() + ".")
+			Log("Node " + node + " not found on armor piece " + arm.GetName() + ".", 1)
 		EndIf
 		i += 1
 	EndWhile
@@ -490,8 +490,8 @@ EndFunction
 
 
 ; This outputs to the Papyrus log file the passed in string with a "pre-pend" I think it's called.
-Function Log(String s)
-	Debug.Trace("(Matera Reborn) |  " + s)
+Function Log(String s, Int severity)
+	Debug.Trace("(Matera Reborn) |  " + s, severity)
 EndFunction
 
 ; If I ever end up figuring out how to check the texture path on a nif model, and use that to find the right node so I can set the texture, there should be a variable
