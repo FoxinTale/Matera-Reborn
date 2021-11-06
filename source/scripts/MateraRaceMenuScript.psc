@@ -88,13 +88,22 @@ Int EarType = 0 ; Default
 
 ; There will be a light plugin that sets this value, and the user is asked during installation. 0 = Base game, 1 = CBBE, 2 = 3BBB, 3 = UNP, 4 = UUNP.
 ; I cannot use plugin index checking, as while at least CBBE and 3BBB have plugins, they're both light plugins, and I haven't figured out how to check for those, if it's even possible.
-; I think I can only use light plugin checking in the FOMOD mod installer.
+; I think I can only use light plugin checking in the FOMOD mod installer. I will experiment from the "GetFormFromfile" thing to check instead, as I encountered issues with this not being set
+; when testing the mod. 
 GlobalVariable Property BodyTypeGlobal Auto
+
+
+; This will be controlled via a plugin. As, currently I do not have permissions to directly use the HDt tail meshes and bundle them with the mod, I will need to change the
+; model paths of the tails that do have existing HDT models to the ones from Equippable HDT Tails for SE. This value will by default be 0, and that plugin will change it to a 1.
+; This is because the HDT tails have additional (invisible in game) model nodes to make the collision physics work. We need to be able to ignore these nodes or know they exist so
+; the texture changing bit doesn't put the texture on the wrong node. Whenever I do get permissions, I still mi ght do it this way.
+GlobalVariable Property MateraHasHDTGlobal Auto
 
 Bool IsMale = true ; Because the player character is usually male by default, unless they have Skyrim Unbound's "Female by Default" installed, or some other mod that changes this.
 Bool IsMatera = false
 Bool FirstRun = true
 Bool processing = false
+Bool HDT = false
 
 String FemaleBodyNode ; This is what the BodyType global variable determines.
 
@@ -257,10 +266,32 @@ Function CheckSex()
 EndFunction
 
 
-Function PluginCheck()
+; If 3BBB or UUNP is detected, it overrides the base CBBE or UNP, as the nodes have different names. 
+Function PluginCheck() ; I decided to give this method a try. Saves one plugin, and reduces the points of failure.
+	Form CBBE = Game.GetFormFromFile(0x800, "CBBE.esp")
+	Form ThreeBBB = Game.GetFormFromFile(0x800, "3BBB.esp") ; It didn't like calling it 3BBB, so ThreeBBB it is.
 
+	If(CBBE)
+		Log("CBBE installed", 0)
+	EndIf
 
+	If(ThreeBBB)
+		Log("3BBB Installed", 0)
+	EndIf
 EndFunction
+
+
+
+Function CheckHDT()
+	Int HDTInt = MateraHasHDTGlobal.GetValueInt()
+
+	If(HDTInt == 0)
+		HDT = false
+	Else
+		HDT = true		
+	EndIf
+EndFunction
+
 
 ;---------------------------------------------------------------------------------------------------------------------
 ; The formlist handling
@@ -371,25 +402,30 @@ Function SetTailColour()
 	; Textures array index 4 is the tail texture.
 	Armor Tail = PlayerRef.GetEquippedArmorInSlot(40)
 
-	If(Tail)
-		If(TailType == 0)
-			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "TailM", 6, -1, MateraTextures[4], false)
+	If(Tail) ;; Basically, a null check to see if there was any tail equipped. 
+		If(HDT) ; HDT tails have multiple nodes to make the physics work in the form of virtual body parts that are invisible in game, but exist in the model.
+			
+			If(TailType == 0)
+				AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "TailM", 6, -1, MateraTextures[4], false)
 
-		ElseIf(TailType == 1)
-			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "Albino", 6, -1, MateraTextures[4], false)
-		
-		ElseIf(TailType == 2)
-			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_0", 6, -1, MateraTextures[4], false)
+			ElseIf(TailType == 1)
+				AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "Albino", 6, -1, MateraTextures[4], false)
+			
+			ElseIf(TailType == 2)
+				AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_0", 6, -1, MateraTextures[4], false)
 
-		ElseIf(TailType == 3)
-			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_0", 6, -1, MateraTextures[4], false)
-			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_001", 6, -1, MateraTextures[4], false)
-			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_002", 6, -1, MateraTextures[4], false)
-			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_003", 6, -1, MateraTextures[4], false)
-			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_004", 6, -1, MateraTextures[4], false)
-		
+			ElseIf(TailType == 3)
+				AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_0", 6, -1, MateraTextures[4], false)
+				AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_001", 6, -1, MateraTextures[4], false)
+				AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_002", 6, -1, MateraTextures[4], false)
+				AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_003", 6, -1, MateraTextures[4], false)
+				AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "fox_tail_004", 6, -1, MateraTextures[4], false)
+			
+			Else
+				; Also should not happen once all tail types are implemented.
+			EndIf
 		Else
-			; Also should not happen once all tail types are implemented.
+			AddOverrideTextureSet(PlayerRef, !IsMale, Tail, Tail.GetNthArmorAddon(0), "", 6, -1, MateraTextures[4], false)
 		EndIf
 	Else
 		Log("No tail found.", 1)

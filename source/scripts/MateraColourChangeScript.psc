@@ -52,6 +52,7 @@ Event OnMenuClose(String menuname)
     EndIf
 EndEvent
 
+
 ; 0 = Feet, 1 = Torso, 2 = Hands
 Event OnObjectEquipped(Form BaseObject, ObjectReference Ref)
     If(IsMatera)
