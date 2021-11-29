@@ -30,8 +30,6 @@ EndEvent
 
 
 Event OnPlayerLoadGame()
-    CheckValues()
-
     Utility.Wait(0.2)
 
     If(IsMatera)
@@ -40,6 +38,10 @@ Event OnPlayerLoadGame()
 		Else
 			mrms.SetFemaleBodyColour()
 		EndIf
+
+        mrms.SetTailColour()
+        mrms.SetEarColour()
+        
 		PlayerRef.QueueNiNodeUpdate()
 	EndIf
 EndEvent
@@ -68,17 +70,20 @@ Event OnObjectEquipped(Form BaseObject, ObjectReference Ref)
 
             ElseIf(arm.GetSlotMask() == 8)
                 If(IsMale)
-                   mrms.SearchAndSet(false, arm, "Hands", 2) ; I have no idea if this is the correct node for male hands. I don't think it is.
+                   mrms.SearchAndSet(false, arm, "Hands", 3) ; I have no idea if this is the correct node for male hands. I don't think it is.
                 Else
-                    mrms.SearchAndSet(true, arm, "Hands", 2)
+                    mrms.SearchAndSet(true, arm, "Hands", 1)
                 EndIf
 
             ElseIf(arm.GetSlotMask() == 80) ; Slot 128 temporarily removed.
                 If(IsMale)
-                    mrms.SearchAndSet(false, arm, "Feet", 0)
+                    mrms.SearchAndSet(false, arm, "Feet", 2)
                 Else
                    mrms.SearchAndSet(true, arm, "Feet", 0)
                 EndIf
+
+            ElseIf(arm.GetSlotMask() == 1024)
+                ; Nothing. It's a tail.
 
             Else
                 Debug.Trace("Something was equipped by the player!")
@@ -117,8 +122,11 @@ Event OnObjectUnEquipped(Form BaseObject, ObjectReference Ref)
                     SetColour(mrms.GetMateraFeet(), "Feet", mrms.GetFemaleBodyTex())
                 EndIf
 
+            ElseIf(arm.GetSlotMask() == 1024)
+                ; Just here to prevent debug logs from the tail being unequipped when it is switched. 
+
             ElseIf(arm.GetSlotMask() == 4098)
-                Debug.Trace("Player unequipped a hood, or hat.")
+                ; Hood, or hat.
 
             Else
                 Debug.Trace("Something was unequipped by the player!")
@@ -142,8 +150,13 @@ Event OnRaceSwitchComplete()
 
             PlayerRef.Additem(Tail, 1, true)
             PlayerRef.AddItem(Ears, 1, true)
+
             PlayerRef.EquipItem(Tail, true, true)
             PlayerRef.EquipItem(Ears, true, true)
+            
+;            mrms.SetEarColour()
+;            mrms.SetTailColour()
+
             PlayerRef.QueueNiNodeUpdate()
         EndIf
     EndIf

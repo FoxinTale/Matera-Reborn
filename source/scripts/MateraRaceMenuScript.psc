@@ -7,15 +7,27 @@ Scriptname MateraRaceMenuScript extends RaceMenuBase
 ; The only documentation I found is in the comments in NiOverride's script itself. 
 ; Did I need to document all this as well as I did? No. But I did. Hopefully it helps any poor sods going through the code in the future.
 
-import NiOverride
+import NiOverride ; From RaceMenu. Without that, this would not be easy...if possible at all. 
 
 ; New things to add/ or to change:
 ;	- UNP body support once CBBE is complete. That's not going to be fun. (for the naked body parts, this is functional, but for armoured, it is not)
 ;	- Male body support. This will be even worse. 
 ;	- Maybe remove HDT-ness from the tails as an option. Why one would not want swooshy tails, who knows. But it should be an option.
+;	- A spell of some kind that does not require the character creation menu to be opened. Or MCM. I dunno. RaceMenu will still be needed for NiOverride.
+
+; Known issues: 
+;	- Vampire doesn't quite work yet. I need to see if there is a script event for when the transformation happens. 
+;	- I've discovered that sometimes the equipped ears and tails can bug out. Maybe create a spell (alteration, or race power) that exists just to unequip and re-equip them.
+
 
 ; Tail types: Beta Matera (Non HDT & HDT), Inari HDT (If a retexture is possible), Original Matera (Non HDT & HDT), Fox Tail (Non HDT & HDT)
 ; Investigate NiOverride's "Skin functions".
+
+;"Skin function" in question:  Function AddSkinOverrideTextureSet(ObjectReference ref, bool isFemale, bool firstPerson, int slotMask, int key, int index, TextureSet value, bool persist)
+	; AddSkinOverrride(PlayerRef, !Booleans[0], false, <slot>, 6, -1, <textureset>, false)
+; It's just a matter of will these work, is the real question. Implementing them is easy, but getting them to work...
+; If they do, however, I can remove all nastiness of node checking and just *do* what I need to. 
+
 
 Int Property RM_MATERA_VERSION = 1 AutoReadOnly
 Int Property Version = 0 Auto
@@ -36,10 +48,12 @@ FormList Property MateraEarsList Auto ; The list of ears.
 ;	0 = Original Matera, 1 = Elin, 2 = Elven, 3 = Lopsided, 4 = Rogue, 5 = Sideways, 6 = Small, 7 = Small Tufts, 8 = Spiky, 9 = Fox 
 
 ;/
-The texture formlists. I'm basically treating the formlists as arrays. I like it this way because I can add and remove things at will if needed.
+The texture formlists.  I like it this way because I can add and remove things at will if needed.
 This is how I manage this instead of swapping so damn many parts out, I just swap the texture sets instead.
+Formlists are essentially prefilled arrays where (generally, but not always) the datatype is known already. 
+They're filled from within the creation kit / editor itself, though they can be filled and emptied within a script, it would be a royal pain to fill all these lists.
 
-This is how I am using the colour formlists, with each number equaling to the colour it should be:
+This is how I am using the colour formlists, with each number equaling to the colour it should be. This is why I do not want to add new colours. 30 should be enough anyways.:
 
 	0 = Albino, 1 = Black, 2 = Black Tip, 3 = Concept, 4 = Cotton Candy, 5 = Cotton Candy Black, 6 = Cotton Candy Blue, 7 = Cotton Candy White,
 	8 = Dark Brown, 9 = Default, 10 = Default Tip, 11 = Everlast Evil, 12 = Fennec, 13 = Georgian Black, 14 = Georgian White, 15 = Green Tip, 16 = Holo 
@@ -53,12 +67,12 @@ FormList Property FemaleHandsColour_List Auto
 FormList Property MaleBodyColourList Auto
 FormList Property MaleHandsColourList Auto
 
-; Tail textures
+; Tail texture lists
 FormList Property BetaTailColourList Auto
 FormList Property OriginalTailColourList Auto
 FormList Property FoxTailColourList Auto
 
-; Ear Textures
+; Ear Texture lists
 FormList Property BetaEarColourList Auto
 FormList Property MateraEarsColourList Auto
 FormList Property FoxEarsColourList Auto
@@ -69,13 +83,17 @@ FormList Property FoxEarsColourList Auto
 ; Good job Bethesda, you did something right!
 TextureSet[] MateraTextures
 ArmorAddon[] MateraParts
-Bool[] Bodies ; Let the bodies hit the floor. (Body types storage. I couldn't resist a reference.)
-Bool[] Booleans ; IsMale, IsMatera, FirstRun, processing, HDT
+Bool[] Bodies ; Let the bodies hit the floor. (Body types storage. I couldn't resist a reference). This may be removed in the future.
+Bool[] Booleans ; IsMale, IsMatera, FirstRun, processing, HasHDT
+
+Bool HasHDT = false
 
 ; Considering turning these into arrays as well.
 Float MateraColour = 10.0
 Float MateraTailType = 0.0
 Float MateraEarType = 0.0
+Float MateraEarCount = 9.0
+Float MateraTailCount = 10.0
 
 ; This as well. 
 Int DefaultColour = 10
@@ -84,19 +102,15 @@ Int TailType = 0
 Int BodyType = 0 ; Default
 Int EarType = 0 ; Default
 
-; There will be a light plugin that sets this value, and the user is asked during installation. 0 = Base game, 1 = CBBE, 2 = 3BBB, 3 = UNP, 4 = UUNP.
-; I cannot use plugin index checking, as while at least CBBE and 3BBB have plugins, they're both light plugins, and I haven't figured out how to check for those, if it's even possible.
-; I think I can only use light plugin checking in the FOMOD mod installer. I will experiment from the "GetFormFromfile" thing to check instead, as I encountered issues with this not being set
-; when testing the mod. 
-GlobalVariable Property BodyTypeGlobal Auto
+; Keywords applied to the objects so that if, somehow something overrides them, and is *not* from this mod, the keyword is checked for, and if not found, the item is ignored.
+Keyword Property MateraEarsKeyword Auto
+Keyword Property MateraTailKeyword Auto
 
-; This will be controlled via a plugin. As, currently I do not have permissions to directly use the HDT tail meshes and bundle them with the mod, I will need to change the
+; This is set via a light plugin. As, currently I do not have permissions to directly use the HDT tail meshes and bundle them with the mod, I will need to change the
 ; model paths of the tails that do have existing HDT models to the ones from Equippable HDT Tails for SE. This value will by default be 0, and that plugin will change it to a 1.
 ; This is because the HDT tails have additional (invisible in game) model nodes to make the collision physics work. We need to be able to ignore these nodes or know they exist so
 ; the texture changing bit doesn't put the texture on the wrong node. Whenever I do get permissions, I still might do it this way.
 GlobalVariable Property MateraHasHDTGlobal Auto
-
-String FemaleBodyNode ; This is what the BodyType global variable determines.
 
 ;---------------------------------------------------------------------------------------------------------------------
 ; Events.
@@ -104,14 +118,11 @@ String FemaleBodyNode ; This is what the BodyType global variable determines.
 ; Runs when the script initialises for the very first time.
 Event OnInit()
 	Parent.OnInit()
-
 	Version = RM_MATERA_VERSION
 	InitialiseValues()
-	CheckSex()
-	RaceCheck()
-	CheckBodyType()
 	PluginCheck()
 	RegisterForMenu("RaceSex Menu")
+	CheckHDT()
 EndEvent
 
 
@@ -123,6 +134,7 @@ EndEvent
 
 Event OnMenuOpen(String MenuName)
 	If(MenuName == "RaceSex Menu")
+		CheckSex()
 		RaceCheck()
 		PluginCheck()
 	EndIf
@@ -131,7 +143,7 @@ EndEvent
 
 Event OnMenuClose(String MenuName)
 	If(MenuName == "RaceSex Menu")
-		If(Booleans[2])
+		If(Booleans[2]) ; Setting first run to false if it is not.
 			Booleans[2] = false
 		EndIf
 		RaceCheck()
@@ -144,7 +156,7 @@ EndEvent
 Event OnSliderRequest(Actor player, ActorBase playerBase, Race actorRace, bool isFemale)
 	AddSliderEx("Fur Colour", CATEGORY_KEY, "matera_colour", 0.0, 29.0, 1.0, MateraColour)
 	AddSliderEx("Ear Style", CATEGORY_KEY, "matera_ear_style", 0.0, 10.0, 1.0, MateraEarType)
-	AddSliderEx("Tail Type", CATEGORY_KEY, "matera_tail_type", 0.0, 11.0, 1.0, MateraTailType) 
+	AddSliderEx("Tail Type", CATEGORY_KEY, "matera_tail_type", 0.0, 10.0, 1.0, MateraTailType) 
 EndEvent
 
 
@@ -164,7 +176,7 @@ Event OnSliderChanged(string callback, float value)
 		EndIf
 
 	ElseIf(callback == "matera_tail_type")
-		If(value <= 3.0)
+		If(value <= 10.0)
 			MateraTailType = value
 			TailType = value as Int
 			SetTailType()
@@ -178,11 +190,11 @@ EndEvent
 
 Function InitialiseValues()
 	MateraTextures = New TextureSet[6] ; 0 = Female Body, 1 = Female Hands, 2 = Male Body, 3 = Male Hands, 4 = Tail, 5 = Ears
-	MateraParts = new ArmorAddon[5] ; 0 = Tail, 1 = Torso, 2 = Hands, 3 = Feet, 4 = Ears. I'm unsure if the last one will be used, but I'm putting it there in case I do figure it out.
+	MateraParts = new ArmorAddon[5] ; 0 = Feet, 1 = Torso, 2 = Hands. Others are currently unused, but are left so they may be used in the future.
 	Bodies = new Bool[4] ; CBBE, 3BBB, UNP, UUNP
 	Booleans = new Bool[5] 
 
-	If(PlayerRef == None) ; Null check. It can happen sometimes when Papyrus loses its mind.
+	If(!PlayerRef) ; Null check. It can happen sometimes when Papyrus loses its goddamn mind.
 		PlayerRef = Game.GetPlayer()
 	EndIf
 
@@ -193,7 +205,7 @@ Function InitialiseValues()
 EndFunction
 
 
-; Because arrays can't be declared and filled in the same line like most other languages. Bloody Papyrus.
+; Because arrays can't be declared and filled in the same line like most other sane languages. Bloody Papyrus.
 Function FillArrays()
 	MateraTextures[0] = FemaleBodyColour_List.GetAt(DefaultColour) as TextureSet ; Female body texture
 	MateraTextures[1] = FemaleHandsColour_List.GetAt(DefaultColour) as TextureSet ; Female hands texture
@@ -203,15 +215,15 @@ Function FillArrays()
 	MateraTextures[5] = BetaEarColourList.GetAt(DefaultColour) as TextureSet ; Ears texture
 
 	Booleans[0] = true ; IsMale, Because the player character is usually male by default, unless they have Skyrim Unbound's "Female by Default" installed, or some other mod that changes this.
-	Booleans[1] = false ; IsMatera
+	Booleans[1] = false ; IsMatera, pretty simple to figure that one out. 
 	Booleans[2] = true ; FirstRun
 	Booleans[3] = false ; Processing
 	Booleans[4] = false ; HDT, whether or not HDT physics based tails are installed. 
 
-	Bodies[0] = false
-	Bodies[1] = false
-	Bodies[2] = false
-	Bodies[3] = false
+	Bodies[0] = false ; CBBE
+	Bodies[1] = false ; 3BBB
+	Bodies[2] = false ; UNP
+	Bodies[3] = false ; UUNP
 EndFunction
 
 
@@ -228,39 +240,22 @@ Function InitialiseBodyParts()
 EndFunction
 
 
+; This is here to keep me from repeating these four lines at least four times. 
+Function SetBodyArray(Bool CBBE, Bool ThreeBBB, Bool UNP, Bool UUNP)
+	Bodies[0] = CBBE
+	Bodies[1] = ThreeBBB
+	Bodies[2] = UNP
+	Bodies[3] = UUNP
+EndFunction
+
 ;---------------------------------------------------------------------------------------------------------------------
 ; Checking functions. 
 
 Function RaceCheck()
 	If(Game.GetPlayer().GetRace() == MateraRace || Game.GetPlayer().GetRace() == MateraVampireRace) ; Done this way because for whatever reason using PlayerRef woesn't work.
-		Booleans[1] = true
+		Booleans[1] = true ; If player is now a Matera, set this to true.
 	Else
-		Booleans[1] = false
-	EndIf
-EndFunction
-
-
-;This one isn't currently used, but I'm keeping it around because it is useful if/when I do use it.
-; However, If/when I determine it will not be used, then it will be removed.
-Function CheckBodyType()
-	BodyType = BodyTypeGlobal.GetValueInt()
-
-	If(BodyType == 0) ; Default value. Could have been either the base game (ew) or what I'm using it as. No option was selected.
-		Debug.MessageBox("No body type was selected during installation. Please reinstall Matera Reborn, otherwise this will not work.")
-
-	ElseIf(BodyType == 1) ; These names kind of explain themselves.
-		 FemaleBodyNode = "CBBE"
-
-	ElseIf(BodyType == 2) 
-		 FemaleBodyNode = "3BBB"
-
-	ElseIf(BodyType == 3) 
-		 FemaleBodyNode = "UNP"
-
-	ElseIf(BodyType == 4) ; Except for this one. This is BHUNP / UUNP Next Generation.
-		 FemaleBodyNode = "BaseShape" ; What is this name even?
-	Else
-		Log("Body type is invalid.", 1)
+		Booleans[1] = false ; Otherwise, it's false.
 	EndIf
 EndFunction
 
@@ -275,21 +270,35 @@ Function CheckSex()
 EndFunction
 
 
-; If 3BBB or UUNP is detected, it overrides the base CBBE or UNP, as the nodes have different names. 
-Function PluginCheck() ; I decided to give this method a try. Saves one plugin, and reduces the points of failure.
+; If 3BBB or UUNP is detected, it overrides the base CBBE or UNP, as the nodes have different names.
+; I do it this way, instead of using something like plugin load order checking, this is dynamic. It no longer relies on having a plugin installed. Yay.
+Function PluginCheck()
+	Log("Any errors in your debug log from this part are harmless. This just means you do not have the body type mod installed.", 0)
 	Form CBBE = Game.GetFormFromFile(0x800, "CBBE.esp")
 	Form ThreeBBB = Game.GetFormFromFile(0x800, "3BBB.esp") ; It didn't like calling it 3BBB, so ThreeBBB it is.
-	Form UNP = Game.GetFormFromFile(0x800, "UNP.esp")
+	; Apparently UNP does not have a plugin. I could have sworn it did.
+	Form UUNP = Game.GetFormFromFile(0x800, "BHUNP3BBB.esp")
 
 	If(CBBE)
 		Log("CBBE installed", 0)
-		Bodies[0] = true
+		SetBodyArray(true, false, false, false)
 	EndIf
 
 	If(ThreeBBB)
 		Log("3BBB Installed", 0)
-		Bodies[1] = true
+		SetBodyArray(true, true, false, false)
 	EndIf
+
+	If(UUNP)
+		SetBodyArray(false, false, true, true)
+		Log("UUNP installed", 0)
+	EndIf
+
+	If(!Bodies[0] && !Bodies[1]) ; CBBE not found, so it must be UNP...Right? I honestly have no idea what other body replacers there are out there.
+		SetBodyArray(false, false, true, false)
+	EndIf
+
+	Log("End section of harmless errors from Matera plugin checking.", 0)
 EndFunction
 
 
@@ -297,9 +306,12 @@ Function CheckHDT()
 	Int HDTInt = MateraHasHDTGlobal.GetValueInt()
 
 	If(HDTInt == 0)
-		Booleans[4] = false
+		HasHDT = false
+		MateraTailCount = 9.0
+		Log("HDT not found", 1)
 	Else
-		Booleans[4] = true		
+		HasHDT = true
+		Log("HDT found.", 1)	
 	EndIf
 EndFunction
 
@@ -330,7 +342,7 @@ Function FindColour(Float ColourOption)
 		SetFemaleBodyColour()	
 	EndIf
 
-	While(Booleans[3])
+	While(Booleans[3]) ; Processing...It's thinking, give it some time.
 		Utility.Wait(0.1)
 	EndWhile
 
@@ -348,7 +360,7 @@ EndFunction
 ; 0 = Female Body, 1 = Female Hands, 2 = Male Body, 3 = Male Hands, 4 = Tail, 5 = Ears
 ; 0 = Feet, 1 = Torso, 2 = Hands
 Function SetFemaleBodyColour()
-	Booleans[3] = true
+	Booleans[3] = true ; "Hold on, I need time to think and look through my nodes."
 	
 	If(PlayerRef.GetEquippedArmorInSlot(32) != None)
 		Armor body = PlayerRef.GetEquippedArmorInSlot(32)
@@ -357,6 +369,7 @@ Function SetFemaleBodyColour()
 	Else
 		; I discovered via netimmerse debug logs that if the part passed in is just a body part, then the root node is what it is looking for.
 		; If the node I pass in is the *only* node there, it fails to find it. However, if a blank string is passed in, it has no issues finding it.
+		; This issue took a solid week of head scratching and frustration for me to figure out. 
 		; This also means that the player's body is naked.
 		AddOverrideTextureSet(PlayerRef, true, MateraBody, MateraParts[1], "", 6, -1, MateraTextures[0], true) ; Nodes are the same name on CBBE, CBBE 3BBB, UNP, and BHUNP!
 	EndIf
@@ -379,12 +392,13 @@ Function SetFemaleBodyColour()
 		PartCheck(true, MateraParts[0], "Feet", MateraTextures[0])
 	EndIf
 
-	Booleans[3] = false
+	Booleans[3] = false ; "Okay, I'm done thinking. I found my nodes and did the things I needed to."
 EndFunction
 	
 	
 Function SetMaleBodyColour()
 	; Not implemented yet. Awating to make female body work first. CBBE mainly works, UNP is totally untested.
+	; And hell, if I can get skin functions working I may be able to remove even more code. Which is good. Less crap to go wrong.
 EndFunction
 	
 
@@ -397,10 +411,10 @@ Function SetTailTexture(Int ColourChoice)
 	If(TailType == 0)
 		MateraTextures[4] = OriginalTailColourList.GetAt(ColourChoice) as TextureSet
 
-	ElseIf(TailType > 1 && TailType <= 8); Greater than one and less than or equal to 8
+	ElseIf(TailType >= 1 && TailType <= 8); Greater than or equal to one and less than or equal to 8
 		MateraTextures[4] = BetaTailColourList.GetAt(ColourChoice) as TextureSet
 
-	ElseIf(TailType == 9)
+	ElseIf(TailType == 9 || TailType == 10)
 		MateraTextures[4] = FoxTailColourList.GetAt(ColourChoice) as TextureSet
 
 	Else
@@ -413,29 +427,40 @@ Function SetTailColour()
 	; Textures array index 4 is the tail texture.
 	Armor Tail = PlayerRef.GetEquippedArmorInSlot(40)
 
-	If(Tail) ;; Basically, a null check to see if there was any tail equipped. 
-		If(Booleans[4]) ; HDT tails have multiple nodes to make the physics work in the form of virtual body parts that are invisible in game, but exist in the model.
-			If(TailType == 0)
-				AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "TailM", 6, -1, MateraTextures[4], false)
+	If(Tail) ; Basically, a null check to see if there was any tail equipped.
+		If(Tail.HasKeyword(MateraTailKeyword))
+;			If(HasHDT) ; HDT tails have multiple nodes to make the physics work in the form of virtual body parts that are invisible in game, but exist in the model.
+ 				;Also, switch statements don't exist in papyrus. So I have to do if/elseif/else messes like this. 
+				Debug.Trace("Tail Type: " + TailType)
+				If(TailType == 0)
+					AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "Albino", 6, -1, MateraTextures[4], false) 
 
-			ElseIf(TailType == 1)
-				AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "Albino", 6, -1, MateraTextures[4], false)
-			
-			ElseIf(TailType == 2)
-				AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "fox_tail_0", 6, -1, MateraTextures[4], false)
+				ElseIf(TailType == 1)
+					AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "TailM", 6, -1, MateraTextures[4], false)
+				
+				ElseIf(TailType > 1 && TailType <= 8)
+					AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "", 6, -1, MateraTextures[4], false) ; Non HDT tails only have one node. 
 
-			ElseIf(TailType == 3)
-				AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "fox_tail_0", 6, -1, MateraTextures[4], false)
-				AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "fox_tail_001", 6, -1, MateraTextures[4], false)
-				AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "fox_tail_002", 6, -1, MateraTextures[4], false)
-				AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "fox_tail_003", 6, -1, MateraTextures[4], false)
-				AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "fox_tail_004", 6, -1, MateraTextures[4], false)
+				ElseIf(TailType == 9)
+					AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "fox_tail_0", 6, -1, MateraTextures[4], false)
+
+				ElseIf(TailType == 10)
+					AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "fox_tail_0", 6, -1, MateraTextures[4], false)
+					AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "fox_tail_001", 6, -1, MateraTextures[4], false)
+					AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "fox_tail_002", 6, -1, MateraTextures[4], false)
+					AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "fox_tail_003", 6, -1, MateraTextures[4], false)
+					AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "fox_tail_004", 6, -1, MateraTextures[4], false)
+				
+				Else
+					; Also should not happen once all tail types are implemented.
+				EndIf
+;			Else
+;				AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "", 6, -1, MateraTextures[4], false) ; Non HDT tails only have one node. 
+;			EndIf
 			
-			Else
-				; Also should not happen once all tail types are implemented.
-			EndIf
+			PlayerRef.QueueNiNodeUpdate()
 		Else
-			AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "", 6, -1, MateraTextures[4], false) ; Non HDT tails only have one node. 
+			Log("Equipped item in the tail slot is not a Materan tail!", 1)
 		EndIf
 	Else
 		Log("No tail found.", 1)
@@ -451,12 +476,12 @@ Function SetEarTexture(Int ColourChoice)
 	Armor Ears = PlayerRef.GetEquippedArmorInSlot(43)
 
 	If(Ears)
-		If(EarType <= 7) ; All the beta ears share the same textures, so....
-			MateraTextures[5] = BetaEarColourList.GetAt(ColourChoice) as TextureSet
-			
-		ElseIf(EarType == 8)
+		If(EarType == 0)
 			MateraTextures[5] = MateraEarsColourList.GetAt(ColourChoice) as TextureSet
 
+		ElseIf(EarType > 0 && EarType <= 8) ; All the beta ears share the same textures, so....
+			MateraTextures[5] = BetaEarColourList.GetAt(ColourChoice) as TextureSet
+			
 		ElseIf(EarType == 9)
 			MateraTextures[5] = FoxEarsColourList.GetAt(ColourChoice) as TextureSet
 
@@ -470,11 +495,35 @@ EndFunction
 
 
 Function SetEarColour()
+	Armor Ears = PlayerRef.GetEquippedArmorInSlot(43)
 
+	If(Ears)
+		If(Ears.HasKeyword(MateraEarsKeyword))
+			;If(Booleans[4]) ; If HDT physics...
+			;	If(EarType == 0) ; Matera Ears
+			;		AddOverrideTextureSet(PlayerRef, !Booleans[0], Ears, Ears.GetNthArmorAddon(0), "", 6, -1, MateraTextures[5], false) ; Non HDT ears also only have one node, the root.
+			;
+			;	ElseIf(EarType == 9) ; Fox Ears. The huge gap is because no HDT version of the 8 other ears exist. I sure as hell don't have the talent or know-how to make that happen myself.
+			;		
+			;	EndIf
+			;Else
+				AddOverrideTextureSet(PlayerRef, !Booleans[0], Ears, Ears.GetNthArmorAddon(0), "", 6, -1, MateraTextures[5], false) ; All ears, even the HDT ones have a single node, apparently. 
+			;EndIf
+			PlayerRef.QueueNiNodeUpdate()
+
+		Else
+			Log("Equipped item in ears slot is not Materan ears!", 1)
+		EndIf
+	Else
+		Log("Nothing found in the ears slot!", 2)
+	EndIf
 EndFunction
 
 ;---------------------------------------------------------------------------------------------------------------------
-; Tail and ear changing functions.
+; Tail and ear changing functions. I had tried using an armor addon and just swapping the model path. I would do this by having a formlist  of the tails (like I do) 
+; and get the model path of the chosen tail, and set the tail "addon"' model path to the new tail, then queue a ninode update. This...failed. Otherwise I would be using that instead.
+; This same process would have been done for the ears too. I had them as headparts and swapped those out, but that got real messy and sometimes failed. It worked, sure. But was a huge mess.
+; You can see it in the other branches (and commit history) of this mod. I hated it, and hated implementing it. 
 
 Function SetTailType()
 	Armor CurrentTail = PlayerRef.GetEquippedArmorInSlot(40) ; Tail will always be slot 40. This is safe to use.
@@ -483,11 +532,11 @@ Function SetTailType()
 
 	PlayerRef.AddItem(NewTail, 1, true)
 	PlayerRef.EquipItem(NewTail, true, true)
-
+;	SetTailColour()
 	PlayerRef.QueueNiNodeUpdate()
 EndFunction
 
-
+                                                                                                                           
 Function SetEarType()
 	Armor CurrentEars = PlayerRef.GetEquippedArmorInSlot(43) ; Ear slot should always be free.
 	Armor NewEars = MateraEarsList.GetAt(EarType) as Armor
@@ -495,6 +544,9 @@ Function SetEarType()
 	PlayerRef.RemoveItem(CurrentEars, 1, true, None)
 	PlayerRef.AddItem(NewEars, 1, true)
 	PlayerRef.EquipItem(NewEars, true, true)
+;	SetEarColour()
+;	Utility.Wait(0.1)
+	PlayerRef.QueueNiNodeUpdate()
 Endfunction
 
 
@@ -503,11 +555,12 @@ Endfunction
 
 
 ; Searches an armor piece for the passed in node.
-Function SearchAndSet(bool isFemale, Armor arm, String node, int TexOption) ; Full name would be SearchForNodeAndSetColourIfNodeExists, but that's too damn long.
-	int i = 0 
+Function SearchAndSet(bool isFemale, Armor arm, String node, int TexOption) ; Full name would be SearchForNodeAndSetColourIfNodeExists, but that's too damn long to type out every time.
+	int i = 0 ; Good ol' "i"!
 	int addoncount = arm.GetNumArmorAddons()
 	TextureSet tex = MateraTextures[TexOption]
 
+	; For loops don't exist either. So I have to use controlled while loops, and set the counter when I need to break out of the loop. 
 	While(i < addoncount)
 		If(HasArmorAddonNode(PlayerRef, false, arm, arm.GetNthArmorAddon(i), node, true))
 			AddOverrideTextureSet(PlayerRef, isFemale, arm, arm.GetNthArmorAddon(i), node, 6, -1, tex, true)
@@ -532,22 +585,23 @@ EndFunction
 
 
 ;---------------------------------------------------------------------------------------------------------------------
-; Debugging and log functions. 
-
+; Debugging and logging. 
 
 ; This outputs to the Papyrus log file the passed in string with a "pre-pend" I think it's called.
 Function Log(String s, Int severity)
 	Debug.Trace("(Matera Reborn) |  " + s, severity)
 EndFunction
 
+
 ; If I ever end up figuring out how to check the texture path on a nif model, and use that to find the right node so I can set the texture, there should be a variable
-; that is checked. This is because someone may have custom texture paths for their body mesh that aren't where the default textures are. Doing it this way has built in handling for when I implement that.
+; that is checked. This is because someone may have custom texture paths for their body mesh that aren't where the default textures are. 
+; Doing it this way has built in handling for when I implement that.
 
 ;---------------------------------------------------------------------------------------------------------------------
 ; Getters. The names explain what they return or get.
 
 Bool Function GetIsMale()
-	return Booleans[0]
+	return Booleans[0]  
 EndFunction
 
 Bool Function GetIsMatera()
