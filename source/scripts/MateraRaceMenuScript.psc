@@ -40,6 +40,8 @@ Armor Property MateraBody Auto
 Race Property MateraRace Auto
 Race Property MateraVampireRace Auto
 
+; Looking at the ears, I think the armour was a bad idea We're gonna have to go back to headparts. 
+; This can probably start with blank ears
 ;------------
 FormList Property MateraTailList Auto ; The list of tails. 
 ;	0 = Original, 1= Beta, 2 = Nine Tail, 3 = Nine Tail Fan, 4 = Silky, 5 = Six Tail, 6 = Small, 7 = Three Tail, 8 = Rogue Tail, 9 = Fox, 10 = Fox Five
@@ -103,6 +105,7 @@ Int BodyType = 0 ; Default
 Int EarType = 0 ; Default
 
 ; Keywords applied to the objects so that if, somehow something overrides them, and is *not* from this mod, the keyword is checked for, and if not found, the item is ignored.
+; Otherwise, this could lead to hilariously broken textures set swapping.
 Keyword Property MateraEarsKeyword Auto
 Keyword Property MateraTailKeyword Auto
 
@@ -121,7 +124,7 @@ Event OnInit()
 	Version = RM_MATERA_VERSION
 	InitialiseValues()
 	PluginCheck()
-	RegisterForMenu("RaceSex Menu")
+	RegisterForMenu("RaceSex Menu") ; RaceMenu, or the character creation menu name. 
 	CheckHDT()
 EndEvent
 
@@ -140,7 +143,7 @@ Event OnMenuOpen(String MenuName)
 	EndIf
 EndEvent
 
-
+; When a UI menu is closed.
 Event OnMenuClose(String MenuName)
 	If(MenuName == "RaceSex Menu")
 		If(Booleans[2]) ; Setting first run to false if it is not.
@@ -205,7 +208,7 @@ Function InitialiseValues()
 EndFunction
 
 
-; Because arrays can't be declared and filled in the same line like most other sane languages. Bloody Papyrus.
+; Because arrays can't be declared and filled in the same line like most other sane languages. Bloody Papyrus. Not the boi, the skelly is a bean. This language... It is horrible sometimes.
 Function FillArrays()
 	MateraTextures[0] = FemaleBodyColour_List.GetAt(DefaultColour) as TextureSet ; Female body texture
 	MateraTextures[1] = FemaleHandsColour_List.GetAt(DefaultColour) as TextureSet ; Female hands texture
