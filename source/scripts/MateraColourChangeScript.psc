@@ -12,11 +12,16 @@ Race Property MateraVampireRace Auto
 Formlist Property MateraTailList Auto
 FormList Property MateraEarsList Auto
 
+Keyword Property MateraEarsKeyword Auto
+Keyword Property MateraTailKeyword Auto
+
 Bool IsMale = true ; I decided on leaving this in instead of using the "mrms.GetIsMale()" repeatedly to hopefully have things be a little bit faster.
 Bool IsMatera = false
 
+String PrevRace;
+
 Event OnInit()
-    Form RaceMenuFunctionality = Game.GetFormFromFile(0x967, "MateraReborn_RaceMenu.esp")
+    Form RaceMenuFunctionality = Game.GetFormFromFile(0x967, "Matera Reborn.esp")
 
     If(RaceMenuFunctionality)
         mrms = RaceMenuFunctionality as MateraRaceMenuScript ; This actually works!!
@@ -49,7 +54,6 @@ EndEvent
 
 Event OnMenuClose(String menuname)
 	If(MenuName == "RaceSex Menu")
-        ;Utility.Wait(15.0)
         CheckValues()
     EndIf
 EndEvent
@@ -84,6 +88,9 @@ Event OnObjectEquipped(Form BaseObject, ObjectReference Ref)
 
             ElseIf(arm.GetSlotMask() == 1024)
                 ; Nothing. It's a tail.
+
+            ElseIf(arm.GetSlotMask() == 8192)
+                ; Ears
 
             Else
                 Debug.Trace("Something was equipped by the player!")
@@ -128,6 +135,9 @@ Event OnObjectUnEquipped(Form BaseObject, ObjectReference Ref)
             ElseIf(arm.GetSlotMask() == 4098)
                 ; Hood, or hat.
 
+            ElseIf(arm.GetSlotMask() == 8192)
+                ; Ears
+
             Else
                 Debug.Trace("Something was unequipped by the player!")
                 ArmorDebug(arm)
@@ -140,35 +150,99 @@ Event OnObjectUnEquipped(Form BaseObject, ObjectReference Ref)
 EndEvent
 
 
-Event OnRaceSwitchComplete()
+Event OnRaceSwitchComplete()    
     RaceCheck()
 
-    If(IsMatera)
-        If(mrms.GetIsFirstRun())
-            Armor Tail = MateraTailList.GetAt(mrms.GetTailType()) as Armor
-            Armor Ears = MateraEarsList.GetAt(mrms.GetEarsType()) as Armor
+    If(IsMatera == TRUE) ;; this is bad practice but this works when for whatever reason just doing "If(IsMatera)" did not. therefore, I'm not touching it.
+;        Log("Player has switched to a MaTera!")
+;        Log(mrms.GetIsFirstRun())
+        Armor Ears = PlayerRef.GetEquippedArmorInSlot(43)
+        Armor Tail = PlayerRef.GetEquippedArmorInSlot(40)
 
-            PlayerRef.Additem(Tail, 1, true)
-            PlayerRef.AddItem(Ears, 1, true)
+        If(!Ears && !Tail) 
+;            Log("No ears and tail, then add them.")
+            ; Just a catch...
+        ElseIf(!Ears && Tail)
+ ;           Log("No ears, but there is a tail equipped. Unequip it and add the Matera's.")
+             PlayerRef.UnequipItem(Tail, false, true)
 
-            PlayerRef.EquipItem(Tail, true, true)
-            PlayerRef.EquipItem(Ears, true, true)
-            
-;            mrms.SetEarColour()
-;            mrms.SetTailColour()
+        ElseIf(!Tail && Ears)
+ ;           Log("No tail,  but ears are found.")
+            PlayerRef.UnequipItem(Ears, false, true)
 
-            PlayerRef.QueueNiNodeUpdate()
+        ElseIf(Tail && Ears)
+;            Log("Both ears and tail found.")
+            PlayerRef.UnequipItem(Ears, false, true)
+            PlayerRef.UnequipItem(Tail, false, true)
+
+        Else
+            Log("Okay, this should't happen. Everything else is covered.")
         EndIf
+        AddMateraBits()
+
+    Else
+
+        RemoveMateraBits()
     EndIf
 EndEvent
 
 
+Function AddMateraBits()
+    Armor Tail = MateraTailList.GetAt(mrms.GetTailType()) as Armor
+    Armor Ears = MateraEarsList.GetAt(mrms.GetEarsType()) as Armor
+
+    PlayerRef.Additem(Tail, 1, true)
+    PlayerRef.AddItem(Ears, 1, true)
+    
+    PlayerRef.EquipItem(Tail, true, true)
+    PlayerRef.EquipItem(Ears, true, true)
+                
+;    mrms.SetEarColour()
+;    mrms.SetTailColour()
+    
+    PlayerRef.QueueNiNodeUpdate()
+EndFunction
+
+
+; Remove the added tails and ears when 
+Function RemoveMateraBits()
+    Log("Player is not a MaTera")
+    
+    Armor Ears = PlayerRef.GetEquippedArmorInSlot(43)
+    Armor Tail = PlayerRef.GetEquippedArmorInSlot(40)
+
+    Bool DoUpdate = false
+
+    If(Ears) ; If this is not true, then nothing is there in the ears slot.
+        If(Ears.HasKeyword(MateraEarsKeyword))
+            PlayerRef.RemoveItem(Ears, 1, true)
+            DoUpdate = true
+        EndIf
+    EndIf
+
+
+    If(Tail)
+        If(Tail.HasKeyword(MateraTailKeyword))
+            PlayerRef.RemoveItem(Tail, 1, true)
+            DoUpdate = true
+        EndIf
+    EndIf
+
+    If(DoUpdate)
+        PlayerRef.QueueNiNodeUpdate()
+    EndIf
+EndFunction
+
+; Apparently, just using GetRace() and comparing did not work, so I had to resort to simple string comparison.
 Function RaceCheck()
-    If(PlayerRef.GetRace() == MateraRace || PlayerRef.GetRace() == MateraVampireRace)
+    String raceName = PlayerRef.GetRace().GetName()
+    If(raceName == MateraRace.GetName() || raceName == MateraVampireRace.GetName())
         IsMatera = true
     Else
         IsMatera = false    
     EndIf
+;    Log(IsMatera)
+;    Log(RaceName)
 EndFunction
 
 

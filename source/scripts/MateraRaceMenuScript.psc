@@ -21,12 +21,7 @@ import NiOverride ; From RaceMenu. Without that, this would not be easy...if pos
 
 
 ; Tail types: Beta Matera (Non HDT & HDT), Inari HDT (If a retexture is possible), Original Matera (Non HDT & HDT), Fox Tail (Non HDT & HDT)
-; Investigate NiOverride's "Skin functions".
-
-;"Skin function" in question:  Function AddSkinOverrideTextureSet(ObjectReference ref, bool isFemale, bool firstPerson, int slotMask, int key, int index, TextureSet value, bool persist)
-	; AddSkinOverrride(PlayerRef, !Booleans[0], false, <slot>, 6, -1, <textureset>, false)
-; It's just a matter of will these work, is the real question. Implementing them is easy, but getting them to work...
-; If they do, however, I can remove all nastiness of node checking and just *do* what I need to. 
+; NiOverride's Skin functions do not work like I thought they did. 
 
 
 Int Property RM_MATERA_VERSION = 1 AutoReadOnly
@@ -100,9 +95,9 @@ Float MateraTailCount = 10.0
 ; This as well. 
 Int DefaultColour = 10
 Int CurrentColour = 10
-Int TailType = 0
-Int BodyType = 0 ; Default
-Int EarType = 0 ; Default
+Int TailType = 1 ; Default 1
+Int BodyType = 0 ; Default 0
+Int EarType = 0 ; Default 0
 
 ; Keywords applied to the objects so that if, somehow something overrides them, and is *not* from this mod, the keyword is checked for, and if not found, the item is ignored.
 ; Otherwise, this could lead to hilariously broken textures set swapping.
@@ -136,6 +131,9 @@ EndEvent
 
 
 Event OnMenuOpen(String MenuName)
+	If(!Booleans[2])
+		Booleans[2] = true
+	EndIf
 	If(MenuName == "RaceSex Menu")
 		CheckSex()
 		RaceCheck()
@@ -146,9 +144,9 @@ EndEvent
 ; When a UI menu is closed.
 Event OnMenuClose(String MenuName)
 	If(MenuName == "RaceSex Menu")
-		If(Booleans[2]) ; Setting first run to false if it is not.
-			Booleans[2] = false
-		EndIf
+;		If(Booleans[2]) ; Setting first run to false if it is not.
+;			Booleans[2] = false
+;		EndIf
 		RaceCheck()
 		CheckSex()
 	EndIf
@@ -352,7 +350,7 @@ Function FindColour(Float ColourOption)
 	SetEarColour()
 	SetTailColour()
 
-	Utility.Wait(0.1)
+	;Utility.Wait(0.1)
 	PlayerRef.QueueNiNodeUpdate()
 EndFunction
 
@@ -366,7 +364,7 @@ Function SetFemaleBodyColour()
 	Booleans[3] = true ; "Hold on, I need time to think and look through my nodes."
 	
 	If(PlayerRef.GetEquippedArmorInSlot(32) != None)
-		Armor body = PlayerRef.GetEquippedArmorInSlot(32)
+		Armor body = PlayerRef.GetEquippedArmorInSlot(32)		
 		SearchAndSet(!Booleans[0], body, "CBBE", 0)
 		SearchAndSet(!Booleans[0], body, "3BBB", 0)
 	Else
@@ -394,7 +392,7 @@ Function SetFemaleBodyColour()
 		; The player has (literal) cold feet because they're wearing nothing there.
 		PartCheck(true, MateraParts[0], "Feet", MateraTextures[0])
 	EndIf
-
+	;PlayerRef.QueueNiNodeUpdate()
 	Booleans[3] = false ; "Okay, I'm done thinking. I found my nodes and did the things I needed to."
 EndFunction
 	
@@ -436,7 +434,7 @@ Function SetTailColour()
  				;Also, switch statements don't exist in papyrus. So I have to do if/elseif/else messes like this. 
 				Debug.Trace("Tail Type: " + TailType)
 				If(TailType == 0)
-					AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "Albino", 6, -1, MateraTextures[4], false) 
+					AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "", 6, -1, MateraTextures[4], false) 
 
 				ElseIf(TailType == 1)
 					AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "TailM", 6, -1, MateraTextures[4], false)
@@ -461,7 +459,7 @@ Function SetTailColour()
 ;				AddOverrideTextureSet(PlayerRef, !Booleans[0], Tail, Tail.GetNthArmorAddon(0), "", 6, -1, MateraTextures[4], false) ; Non HDT tails only have one node. 
 ;			EndIf
 			
-			PlayerRef.QueueNiNodeUpdate()
+		;	PlayerRef.QueueNiNodeUpdate()
 		Else
 			Log("Equipped item in the tail slot is not a Materan tail!", 1)
 		EndIf
@@ -502,18 +500,8 @@ Function SetEarColour()
 
 	If(Ears)
 		If(Ears.HasKeyword(MateraEarsKeyword))
-			;If(Booleans[4]) ; If HDT physics...
-			;	If(EarType == 0) ; Matera Ears
-			;		AddOverrideTextureSet(PlayerRef, !Booleans[0], Ears, Ears.GetNthArmorAddon(0), "", 6, -1, MateraTextures[5], false) ; Non HDT ears also only have one node, the root.
-			;
-			;	ElseIf(EarType == 9) ; Fox Ears. The huge gap is because no HDT version of the 8 other ears exist. I sure as hell don't have the talent or know-how to make that happen myself.
-			;		
-			;	EndIf
-			;Else
-				AddOverrideTextureSet(PlayerRef, !Booleans[0], Ears, Ears.GetNthArmorAddon(0), "", 6, -1, MateraTextures[5], false) ; All ears, even the HDT ones have a single node, apparently. 
-			;EndIf
-			PlayerRef.QueueNiNodeUpdate()
-
+				AddOverrideTextureSet(PlayerRef, !Booleans[0], Ears, Ears.GetNthArmorAddon(0), "", 6, -1, MateraTextures[5], false) ; All ears, even the HDT ones have a single node, apparently.
+				PlayerRef.QueueNiNodeUpdate()
 		Else
 			Log("Equipped item in ears slot is not Materan ears!", 1)
 		EndIf
@@ -535,7 +523,7 @@ Function SetTailType()
 
 	PlayerRef.AddItem(NewTail, 1, true)
 	PlayerRef.EquipItem(NewTail, true, true)
-;	SetTailColour()
+	SetTailColour()
 	PlayerRef.QueueNiNodeUpdate()
 EndFunction
 
@@ -547,7 +535,7 @@ Function SetEarType()
 	PlayerRef.RemoveItem(CurrentEars, 1, true, None)
 	PlayerRef.AddItem(NewEars, 1, true)
 	PlayerRef.EquipItem(NewEars, true, true)
-;	SetEarColour()
+	SetEarColour()
 ;	Utility.Wait(0.1)
 	PlayerRef.QueueNiNodeUpdate()
 Endfunction
