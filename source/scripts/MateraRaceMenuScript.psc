@@ -78,8 +78,8 @@ FormList Property FoxEarsColourList Auto
 ; This would (also theoretically) enable slightly faster access times due to it being a single continuous block and not being separate, scattered variables.
 ; Looking at the save file with something like Resaver, we can see that arrays actually have their own section, and are indeed stored as a continuous block.
 ; Good job Bethesda, you did something right!
-TextureSet[] MateraTextures
-ArmorAddon[] MateraParts
+TextureSet[] MateraTextures ; Which aspect is which is defined later on in here.
+ArmorAddon[] MateraParts ; Read the above comment. 
 Bool[] Bodies ; Let the bodies hit the floor. (Body types storage. I couldn't resist a reference). This may be removed in the future.
 Bool[] Booleans ; IsMale, IsMatera, FirstRun, processing, HasHDT
 
@@ -112,6 +112,9 @@ GlobalVariable Property MateraHasHDTGlobal Auto
 
 ;---------------------------------------------------------------------------------------------------------------------
 ; Events.
+
+
+String BodyString = ""
 
 ; Runs when the script initialises for the very first time.
 Event OnInit()
@@ -282,11 +285,13 @@ Function PluginCheck()
 
 	If(CBBE)
 		Log("CBBE installed", 0)
+;		BodyString = "CBBE"
 		SetBodyArray(true, false, false, false)
 	EndIf
 
 	If(ThreeBBB)
 		Log("3BBB Installed", 0)
+;		BodyString = "3BBB"
 		SetBodyArray(true, true, false, false)
 	EndIf
 
@@ -590,6 +595,23 @@ EndFunction
 
 ;---------------------------------------------------------------------------------------------------------------------
 ; Getters. The names explain what they return or get.
+
+String Function GetBodyString()
+	If(Bodies[0] && !Bodies[1])
+		BodyString = "CBBE"
+
+	ElseIf(Bodies[0] && Bodies[1])
+		BodyString = "3BBB"
+	
+	ElseIf(!Bodies[0] && !Bodies[1] && Bodies[3])
+		BodyString = "BaseShape"
+		
+	Else
+		BodyString = ""
+	EndIf
+
+	return BodyString
+EndFunction
 
 Bool Function GetIsMale()
 	return Booleans[0]  

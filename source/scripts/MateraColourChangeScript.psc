@@ -112,7 +112,7 @@ Event OnObjectUnEquipped(Form BaseObject, ObjectReference Ref)
                 If(IsMale)
                     ;aaaaaaaa
                 Else
-                    AddOverrideTextureSet(PlayerRef, true, MateraBody, mrms.GetMateraTorso(), "", 6, -1, mrms.GetFemaleBodyTex(), true)
+                   SetColour(mrms.GetMateraTorso(), mrms.GetBodyString(), mrms.GetFemaleBodyTex())
                 EndIf
 
             ElseIf(arm.GetSlotMask() == 8) ; Hands, slot 33
@@ -144,7 +144,6 @@ Event OnObjectUnEquipped(Form BaseObject, ObjectReference Ref)
             EndIf
             
             Utility.Wait(0.1)
-            PlayerRef.QueueNiNodeUpdate()
         EndIf
     EndIf
 EndEvent
@@ -153,7 +152,7 @@ EndEvent
 Event OnRaceSwitchComplete()    
     RaceCheck()
 
-    If(IsMatera == TRUE) ;; this is bad practice but this works when for whatever reason just doing "If(IsMatera)" did not. therefore, I'm not touching it.
+    If(IsMatera == TRUE) ;; this is bad practice but this works when for whatever reason just doing "If(IsMatera)" makes Papyrus lose its mind....again.
 ;        Log("Player has switched to a MaTera!")
 ;        Log(mrms.GetIsFirstRun())
         Armor Ears = PlayerRef.GetEquippedArmorInSlot(43)
@@ -204,7 +203,7 @@ Function AddMateraBits()
 EndFunction
 
 
-; Remove the added tails and ears when 
+; Remove the added tails and ears when or if the player character changes their race from a MaTera.
 Function RemoveMateraBits()
     Log("Player is not a MaTera")
     
@@ -251,9 +250,16 @@ EndFunction
 Function SetColour(ArmorAddon bodypart, String node, TextureSet tex)
     If(HasArmorAddonNode(PlayerRef, false, MateraBody, bodypart, node, true))
         AddOverrideTextureSet(PlayerRef, !IsMale, MateraBody, bodypart, node, 6, -1, tex, true)
+        return ; stop here, it's been found. 
+    ElseIf(bodypart == mrms.GetMateraTorso() && mrms.GetBodyString() == "3BBB")
+        If(HasArmorAddonNode(PlayerRef, false, MateraBody, bodypart, "3BBB", true))
+            AddOverrideTextureSet(PlayerRef, !IsMale, MateraBody, bodypart, "3BBB", 6, -1, tex, true)
+            return
+        EndIf
     Else
         AddOverrideTextureSet(PlayerRef, !IsMale, MateraBody, bodypart, "", 6, -1, tex, true)
     EndIf
+    PlayerRef.QueueNiNodeUpdate()
 EndFunction
 
 
