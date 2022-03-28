@@ -39,7 +39,7 @@ Race Property MateraVampireRace Auto
 ; This can probably start with blank ears
 ;------------
 FormList Property MateraTailList Auto ; The list of tails. 
-;	0 = Original, 1= Beta, 2 = Nine Tail, 3 = Nine Tail Fan, 4 = Silky, 5 = Six Tail, 6 = Small, 7 = Three Tail, 8 = Rogue Tail, 9 = Fox, 10 = Fox Five
+;	0 = Original, 1= Beta, 2 = Fluff, 3 = Nine Tail, 4 = Nine Tail Fan, 5 = Silky, 6 = Six Tail, 7 = Small, 8 = Three Tail, 9 = Rogue Tail, 10 = Fox, 11 = Fox Five
 
 FormList Property MateraEarsList Auto ; The list of ears. 
 ;	0 = Original Matera, 1 = Elin, 2 = Elven, 3 = Lopsided, 4 = Rogue, 5 = Sideways, 6 = Small, 7 = Small Tufts, 8 = Spiky, 9 = Fox 
@@ -89,8 +89,9 @@ Bool HasHDT = false
 Float MateraColour = 10.0
 Float MateraTailType = 0.0
 Float MateraEarType = 0.0
-Float MateraEarCount = 9.0
-Float MateraTailCount = 10.0
+
+Float MateraEarCount = 8.0 ; This will change if HDT tails is installed. From 9 to 11.
+Float MateraTailCount = 9.0 ; This only increases by 1 if HDT is installed.
 
 ; This as well. 
 Int DefaultColour = 10
@@ -159,8 +160,8 @@ EndEvent
 ; When it is time for slider creations, create them and set their appropriate values.
 Event OnSliderRequest(Actor player, ActorBase playerBase, Race actorRace, bool isFemale)
 	AddSliderEx("Fur Colour", CATEGORY_KEY, "matera_colour", 0.0, 29.0, 1.0, MateraColour)
-	AddSliderEx("Ear Style", CATEGORY_KEY, "matera_ear_style", 0.0, 10.0, 1.0, MateraEarType)
-	AddSliderEx("Tail Type", CATEGORY_KEY, "matera_tail_type", 0.0, 10.0, 1.0, MateraTailType) 
+	AddSliderEx("Ear Style", CATEGORY_KEY, "matera_ear_style", 0.0, MateraEarCount, 1.0, MateraEarType)
+	AddSliderEx("Tail Type", CATEGORY_KEY, "matera_tail_type", 0.0, MateraTailCount, 1.0, MateraTailType) 
 EndEvent
 
 
@@ -173,14 +174,14 @@ Event OnSliderChanged(string callback, float value)
 		EndIf
 
 	ElseIf(callback == "matera_ear_style")
-		If(value <= 10.0)
+		If(value <= MateraEarCount)
 			MateraEarType = value
 			EarType = value as Int
 			SetEarType()
 		EndIf
 
 	ElseIf(callback == "matera_tail_type")
-		If(value <= 10.0)
+		If(value <= MateraTailCount)
 			MateraTailType = value
 			TailType = value as Int
 			SetTailType()
@@ -256,7 +257,7 @@ EndFunction
 ; Checking functions. 
 
 Function RaceCheck()
-	If(Game.GetPlayer().GetRace() == MateraRace || Game.GetPlayer().GetRace() == MateraVampireRace) ; Done this way because for whatever reason using PlayerRef woesn't work.
+	If(Game.GetPlayer().GetRace() == MateraRace || Game.GetPlayer().GetRace() == MateraVampireRace) ; Done this way because for whatever reason using PlayerRef won't work.
 		Booleans[1] = true ; If player is now a Matera, set this to true.
 	Else
 		Booleans[1] = false ; Otherwise, it's false.
@@ -285,13 +286,11 @@ Function PluginCheck()
 
 	If(CBBE)
 		Log("CBBE installed", 0)
-;		BodyString = "CBBE"
 		SetBodyArray(true, false, false, false)
 	EndIf
 
 	If(ThreeBBB)
 		Log("3BBB Installed", 0)
-;		BodyString = "3BBB"
 		SetBodyArray(true, true, false, false)
 	EndIf
 
@@ -313,10 +312,13 @@ Function CheckHDT()
 
 	If(HDTInt == 0)
 		HasHDT = false
-		MateraTailCount = 9.0
+		MateraTailCount = 9.0 ; Reset to default values, just to play it safe. I have zero confidence in Papyrus not to start drooling on itself. 
+		MateraEarCount = 8.0
 		Log("HDT not found", 1)
 	Else
 		HasHDT = true
+		MateraTailCount = 11.0
+		MateraEarCount = 9.0
 		Log("HDT found.", 1)	
 	EndIf
 EndFunction
@@ -405,6 +407,7 @@ EndFunction
 Function SetMaleBodyColour()
 	; Not implemented yet. Awating to make female body work first. CBBE mainly works, UNP is totally untested.
 	; And hell, if I can get skin functions working I may be able to remove even more code. Which is good. Less crap to go wrong.
+	; Heavily considering HIMBO being a requirement.
 EndFunction
 	
 

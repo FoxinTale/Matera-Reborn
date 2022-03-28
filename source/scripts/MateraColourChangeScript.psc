@@ -1,5 +1,5 @@
 Scriptname MateraColourChangeScript extends ReferenceAlias
-
+; this script isn't as commented as the main one because most of what the texture swapping is explained in there. 
 import NiOverride
 
 Actor Property PlayerRef Auto
@@ -219,7 +219,6 @@ Function RemoveMateraBits()
         EndIf
     EndIf
 
-
     If(Tail)
         If(Tail.HasKeyword(MateraTailKeyword))
             PlayerRef.RemoveItem(Tail, 1, true)
@@ -232,7 +231,7 @@ Function RemoveMateraBits()
     EndIf
 EndFunction
 
-; Apparently, just using GetRace() and comparing did not work, so I had to resort to simple string comparison.
+; Apparently, just using GetRace() and comparing did not work, so I had to resort to simple string comparison. WTF Papyrus?  It works just fine in the other script. 
 Function RaceCheck()
     String raceName = PlayerRef.GetRace().GetName()
     If(raceName == MateraRace.GetName() || raceName == MateraVampireRace.GetName())
@@ -240,17 +239,17 @@ Function RaceCheck()
     Else
         IsMatera = false    
     EndIf
-;    Log(IsMatera)
-;    Log(RaceName)
 EndFunction
 
 
 ; This is done this way because there are mods that exist that add claws or nails to the feet/hands.
 ; Were this not taken into account, it is possible that the feet texture gets applied to the claws or nails, and we don't want that.
+;This also handles the bodies, as the 3BBB mesh hasn not just a naked body, but other parts that broke the script.
 Function SetColour(ArmorAddon bodypart, String node, TextureSet tex)
     If(HasArmorAddonNode(PlayerRef, false, MateraBody, bodypart, node, true))
         AddOverrideTextureSet(PlayerRef, !IsMale, MateraBody, bodypart, node, 6, -1, tex, true)
         return ; stop here, it's been found. 
+
     ElseIf(bodypart == mrms.GetMateraTorso() && mrms.GetBodyString() == "3BBB")
         If(HasArmorAddonNode(PlayerRef, false, MateraBody, bodypart, "3BBB", true))
             AddOverrideTextureSet(PlayerRef, !IsMale, MateraBody, bodypart, "3BBB", 6, -1, tex, true)
